@@ -38,51 +38,38 @@ function random_integer()
     return Math.floor((Math.random() * 4294967296)); 
 }
 
-GatewayClient.prototype.fetch_last_height = function(handle_fetch)
+GatewayClient.prototype.make_request = function(command, params, handler)
 {
     id = random_integer();
     var request = {
         "id": id,
-        "command": "fetch_last_height",
-        "params": []
+        "command": command,
+        "params": params
     };
     message = JSON.stringify(request);
     write_to_screen("SENT: " + message); 
     this.websocket.send(message);
-    this.handler_map[id] = function(response) {
+    this.handler_map[id] = handler;
+}
+
+GatewayClient.prototype.fetch_last_height = function(handle_fetch)
+{
+    this.make_request("fetch_last_height", [], function(response) {
         handle_fetch(response["error"], response["result"][0]);
-    };
+    });
 }
 
 GatewayClient.prototype.fetch_transaction = function(tx_hash, handle_fetch)
 {
-    id = random_integer();
-    var request = {
-        "id": id,
-        "command": "fetch_transaction",
-        "params": [tx_hash]
-    };
-    message = JSON.stringify(request);
-    write_to_screen("SENT: " + message); 
-    this.websocket.send(message);
-    this.handler_map[id] = function(response) {
+    this.make_request("fetch_transaction", [tx_hash], function(response) {
         handle_fetch(response["error"], response["result"][0]);
-    };
+    });
 }
 
 GatewayClient.prototype.fetch_history = function(address, handle_fetch)
 {
-    id = random_integer();
-    var request = {
-        "id": id,
-        "command": "fetch_history",
-        "params": [address]
-    };
-    message = JSON.stringify(request);
-    write_to_screen("SENT: " + message); 
-    this.websocket.send(message);
-    this.handler_map[id] = function(response) {
+    this.make_request("fetch_history", [address], function(response) {
         handle_fetch(response["error"], response["result"][0]);
-    };
+    });
 }
 
