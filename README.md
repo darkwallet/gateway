@@ -14,13 +14,13 @@ $ curl http://localhost:8888/block/000000000000000145f738890dc703e7637b677f15e9a
 
 Fetching transaction 
 ```
-$ curl http://localhost:6666/tx/5a002b39d70d0c3197afa1d2ae874083631f5a43cd4fe2b2cc35347d863f00f7
+$ curl http://localhost:8888/tx/5a002b39d70d0c3197afa1d2ae874083631f5a43cd4fe2b2cc35347d863f00f7
 {"inputs": [{"previous_output": ["da03f16974423bf6425be37e7a6297587a35f117ce3b657e781eeff0098faed5", 0], "sequence": 4294967295, ....
 ```
 
 address history 
 
 ```
-$ curl http://localhost:6666/address/1dice3jkpTvevsohA4Np1yP4uKzG1SRLv
+$ curl http://localhost:8888/address/1dice3jkpTvevsohA4Np1yP4uKzG1SRLv
 { "history" : [{"spend_hash": "cdf6ea4f4590fbc847855cf68af181f1398b8997081cf0cfbd14e0f2cf2808ea", "output_height": 228180, "spend_index": 0, "value": 1000000, ....
 ```
