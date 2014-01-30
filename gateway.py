@@ -1,22 +1,4 @@
 #!/usr/bin/env python
-#
-# Copyright 2009 Facebook
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
-"""Simplified chat demo for websockets.
-
-Authentication, error handling, etc are left as an exercise for the reader :)
-"""
 
 import logging
 import tornado.options
@@ -25,96 +7,124 @@ import tornado.websocket
 import os.path
 import json
 import obelisk
+import json
+import threading
+
+from tornado.web import asynchronous, HTTPError
 
 # Install Tornado reactor loop into Twister
 # http://www.tornadoweb.org/en/stable/twisted.html
-from tornado.platform.twisted import TwistedIOLoop
-from twisted.internet import reactor
-TwistedIOLoop().install()
+
+# from tornado.platform.twisted import TwistedIOLoop
+# from twisted.internet import reactor
+# TwistedIOLoop().install()
 
 from tornado.options import define, options
 
 define("port", default=8888, help="run on the given port", type=int)
 
 
-class Application(tornado.web.Application):
+class ObeliskApplication(tornado.web.Application):
 
     def __init__(self):
-        client = obelisk.ObeliskOfLightClient('tcp://85.25.198.97:8081')
+
+        settings = dict(debug=True)
+
+        self.client = obelisk.ObeliskOfLightClient('tcp://85.25.198.97:8081')
 
         handlers = [
-            (r"/", QuerySocketHandler, dict(obelisk_client=client))
+            (r"/block/([^/]*)(?:/)?", BlockHeaderHandler), #/block/<block hash>
+            (r"/block/([^/]*)/transactions(?:/)?", BlockTransactionsHandler), #/block/<block hash>/transactions
+            (r"/tx(?:/)?", TransactionPoolHandler), #/tx/
+            (r"/tx/([^/]*)(?:/)?", TransactionHandler), # /tx/<txid>
+            (r"/address/([^/]*)(?:/)?", AddressHistoryHandler), #/address/<address>
+            (r"/height(?:/)?", HeightHandler), #/height
+
+            (r"/ws(?:/)?", ObWebsocket) #/ws
         ]
-        tornado.web.Application.__init__(self, handlers)
+
+        tornado.web.Application.__init__(self, handlers, **settings)
 
 
-class QuerySocketHandler(tornado.websocket.WebSocketHandler):
+class BlockHeaderHandler(tornado.web.RequestHandler):
 
-    def initialize(self, obelisk_client):
-        self._obelisk_handler = ObeliskHandler(obelisk_client)
+    @asynchronous
+    def get(self, blk_hash=None):
+        if blk_hash is None:
+            raise HTTPError(400, reason="No block hash")
 
-    def open(self):
-        logging.info("OPEN")
-
-    def on_close(self):
-        logging.info("CLOSE")
-
-    def on_message(self, message):
         try:
-            request = json.loads(message)
-        except:
-            logging.error("Error decoding message: %s", message, exc_info=True)
-        logging.info("Request: %s", request)
-        if self._obelisk_handler.handle_request(self, request):
-            return
-        logging.warning("Unhandled command. Dropping request.")
+            blk_hash = blk_hash.decode("hex")
+        except ValueError:
+            raise HTTPError(400, reason="Invalid hash")
 
-class ObeliskCallbackBase(object):
+        self.application.client.fetch_block_header(blk_hash ,self.on_fetch)
 
-    def __init__(self, socket, request_id):
-        self._socket = socket
-        self._request_id = request_id
-
-    def __call__(self, *args):
-        assert len(args) > 1
-        error = args[0]
-        assert error is None or type(error) == str
-        result = self.translate_response(args[1:])
-        response = {
-            "id": self._request_id,
-            "error": error,
-            "result": result
+    def on_fetch(self, ec, header):
+        block = {
+            "version": header.version,
+            "prev_hash": header.previous_block_hash.encode("hex"),
+            "merkle": header.merkle.encode("hex"),
+            "timestamp": header.timestamp,
+            "bits": header.bits,
+            "nonce": header.nonce
         }
+
+        self.finish(json.dumps(block))
+
+
+class BlockTransactionsHandler(tornado.web.RequestHandler):
+
+    @asynchronous
+    def get(self, blk_hash=None):
+        if blk_hash is None:
+            raise HTTPError(400, reason="No block hash")
+
         try:
-            self._socket.write_message(json.dumps(response))
-        except:
-            logging.error("Error sending message", exc_info=True)
+            blk_hash = blk_hash.decode("hex")
+        except ValueError:
+            raise HTTPError(400, reason="Invalid hash")
 
-    def translate_arguments(self, params):
-        return params
+        self.application.client.fetch_block_transaction_hashes(blk_hash ,self.on_fetch)
 
-    def translate_response(self, result):
-        return result
+    def on_fetch(self, ec, tx_list):
+        for i, tx_hash in enumerate(tx_list):
+            tx_list[i] = tx_hash.encode("hex")
 
-class ObFetchLastHeight(ObeliskCallbackBase):
+        self.finish(json.dumps({"transactions": tx_list}))
 
-    def translate_response(self, result):
-        assert len(result) == 1
-        return result
 
-class ObFetchTransaction(ObeliskCallbackBase):
+class TransactionPoolHandler(tornado.web.RequestHandler):
+    @asynchronous
+    # Dump transaction pool to user
+    def get(self):
+        raise NotImplementedError
 
-    def translate_arguments(self, params):
-        if len(params) != 1:
-            raise ValueError("Invalid parameter list length")
-        tx_hash = params[0].decode("hex")
-        if len(tx_hash) != 32:
-            raise ValueError("Not a tx hash")
-        return (tx_hash,)
+    def on_fetch(self, ec, pool):
+        raise NotImplementedError
 
-    def translate_response(self, result):
-        assert len(result) == 1
-        tx = result[0]
+    # Send tx if it is valid,
+    # validate if ?validate is in url...
+    def post(self):
+        raise NotImplementedError
+
+
+class TransactionHandler(tornado.web.RequestHandler):
+
+    @asynchronous
+    def get(self, tx_hash=None):
+        if tx_hash is None:
+            raise HTTPError(400, reason="No block hash")
+
+        try:
+            tx_hash = tx_hash.decode("hex")
+        except ValueError:
+            raise HTTPError(400, reason="Invalid hash")
+
+        self.application.client.fetch_transaction(tx_hash ,self.on_fetch)
+
+    def on_fetch(self, ec, tx):
+
         tx_dict = {
             "version": tx.version,
             "locktime": tx.locktime,
@@ -137,65 +147,108 @@ class ObFetchTransaction(ObeliskCallbackBase):
                 "script": output.script.encode("hex")
             }
             tx_dict["outputs"].append(output_dict)
-        return (tx_dict,)
 
-class ObFetchHistory(ObeliskCallbackBase):
+        self.finish(json.dumps(tx_dict))
 
-    def translate_response(self, result):
-        assert len(result) == 1
-        history = []
-        for row in result[0]:
-            o_hash, o_index, o_height, value, s_hash, s_index, s_height = row
-            o_hash = o_hash.encode("hex")
-            s_hash = s_hash.encode("hex")
-            if s_index == 4294967295:
-                s_hash = None
-                s_index = None
-                s_height = None
-            history.append(
-                (o_hash, o_index, o_height, value, s_hash, s_index, s_height))
-        return (history,)
 
-class ObeliskHandler:
+class AddressHistoryHandler(tornado.web.RequestHandler):
 
-    valid_messages = ['fetch_block_header', 'fetch_history', 'subscribe',
-        'fetch_last_height', 'fetch_transaction', 'fetch_spend',
-        'fetch_transaction_index', 'fetch_block_transaction_hashes',
-        'fetch_block_height', 'update', 'renew']
+    @asynchronous
+    def get(self, address=None):
+        if address is None:
+            raise HTTPError(400, reason="No address")
 
-    handlers = {
-        "fetch_last_height": ObFetchLastHeight,
-        "fetch_transaction": ObFetchTransaction,
-        "fetch_history":     ObFetchHistory,
-    }
-
-    def __init__(self, client):
-        self._client = client
-
-    def handle_request(self, socket, request):
-        command = request["command"]
-        if command not in self.handlers:
-            return False
-        method = getattr(self._client, request["command"])
-        params = request["params"]
-        # Create callback handler to write response to the socket.
-        handler = self.handlers[command](socket, request["id"])
         try:
-            params = handler.translate_arguments(params)
+            from_height = long(self.get_argument("from_height", 0))
         except:
-            logging.error("Bad parameters specified", exc_info=True)
-            return True
-        method(*params, cb=handler)
-        return True
+            HTTPError(400)
 
-def main():
-    tornado.options.parse_command_line()
-    app = Application()
-    app.listen(options.port)
-    # Run Twisted reactor.
-    reactor.run()
+        self.application.client.fetch_history(address, self.on_fetch, from_height=from_height)
+
+    def on_fetch(self, ec, history):
+
+        # Write in place as the address history can be very large and leads to memory exhaustion
+        # This is currently pretty bad, it would be better to go to a lower frame level and stream the
+        # data as we recieve it from upstream
+        self.write('{ "history" : [')
+
+        for i, row in enumerate(history):
+            o_hash, o_index, o_height, value, s_hash, s_index, s_height = row
+
+            row_dict = {
+                "output_hash": o_hash.encode("hex"),
+                "output_index": o_index,
+                "output_height": o_height,
+                "value": value,
+                "spend_hash": s_hash.encode("hex"),
+                "spend_index": s_index,
+                "spend_height": s_height
+            }
+
+            self.write(json.dumps(row_dict))
+
+            if i == len(history)-1:
+                self.write('] }')
+            else:
+                self.write('], [')
+
+            # Flush every 100 rows (~8.8 KB)
+            if i % 100 == 0:
+                self.flush()
+
+        self.finish()
+
+
+class HeightHandler(tornado.web.RequestHandler):
+
+    @asynchronous
+    def get(self):
+        self.application.client.fetch_last_height(self.on_fetch)
+
+    def on_fetch(self, ec, height):
+        self.finish(str(height))
+
+ioloop = tornado.ioloop.IOLoop.instance()
+listeners = set() # set of WebsocketHandler
+listen_lock = threading.Lock() # protects listeners
+
+class ObWebsocket(tornado.websocket.WebSocketHandler):
+    def open(self):
+        with listen_lock:
+            listeners.add(self)
+
+    def on_message(self, message):
+        try:
+            request = json.loads(message)
+        except:
+            logging.error("Error decoding message: %s", message, exc_info=True)
+
+        self.application.client.fetch_last_height(self.on_fetch)
+
+        # if self.application.client.handle_request(self, request):
+            # return
+        # logging.warning("Unhandled command. Dropping request.")
+
+
+    def on_fetch(self, ec, height):
+        print "fetched ", height
+        ioloop.add_callback(self.write_message, str(height))
+
+    def on_close(self):
+        with listen_lock:
+            listeners.remove(self)
+
+# Safely write through websocket using 
+# tornado.ioloop.IOLoop.instance().add_callback(listeners[i].write_message, "Hi")
+# Can probably handle subscriptions in python, avoids having to retransmit renew messages.
 
 if __name__ == "__main__":
-    service = "tcp://85.25.198.97:9091"
-    main()
+    application = ObeliskApplication()
+
+    # Auto reload for testing.
+    ioloop = tornado.ioloop.IOLoop.instance()
+    tornado.autoreload.start(ioloop)
+
+    application.listen(8888)
+    tornado.ioloop.IOLoop.instance().start()
 
