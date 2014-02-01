@@ -13,11 +13,18 @@ function init() {
         test(client);
     };
     var client = new GatewayClient("ws://localhost:8888/", handle_connect);
+
+    client.on_error = function(evt) {
+        write_to_screen('<span style="color: red;">ERROR:</span> ' + evt.data);
+    }
+
+    client.on_close = function(evt) {
+        write_to_screen("DISCONNECTED");
+    }
 }
 
 function write_to_screen(message) {
     var pre = document.createElement("p");
-    pre.style.wordWrap = "break-word";
     pre.innerHTML = message;
     output.appendChild(pre);
 }
@@ -27,8 +34,14 @@ window.addEventListener("load", init, false);
 function test(client) {
     var tx = "2604ba7d2190111dbc16b53b0f56ad4351ceabe1b9e1b4f6f1bc75e271bb09b9";
     var address = "1DXrd29DHam37bXJQs5DTXKQwT1gmF4wDe";
+
+    write_to_screen("Fetching last height...");
     client.fetch_last_height(height_fetched);
+
+    write_to_screen("Fetching transaction " + tx + "...");
     client.fetch_transaction(tx, tx_fetched);
+
+    write_to_screen("Fetching address " + address + "...");
     client.fetch_history(address, history_fetched);
 }
 
@@ -59,6 +72,14 @@ function history_fetched(error, history) {
 }
 
 </script>
+<style>
+body {
+    /* I love Matrix! */
+    font-family: monospace;
+    color: #2F2;
+    background-color: #222;
+}
+</style>
 
 <h2>WebSocket Test</h2>
 <div id="output"></div>

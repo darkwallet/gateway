@@ -50,17 +50,15 @@ GatewayClient.prototype.make_request = function(command, params, handler) {
         "params": params
     };
     message = JSON.stringify(request);
-    write_to_screen("SENT: " + message); 
     this.websocket.send(message);
     this.handler_map[id] = handler;
 };
 
 GatewayClient.prototype.on_close = function(evt) {
-    write_to_screen("DISCONNECTED");
 };
 
 GatewayClient.prototype.on_error = function(evt) {
-    write_to_screen('<span style="color: red;">ERROR:</span> ' + evt.data);
+    throw evt;
 };
 
 GatewayClient.prototype.on_message = function(evt) {
