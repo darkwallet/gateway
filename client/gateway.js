@@ -43,13 +43,13 @@ GatewayClient.prototype.fetch_history = function(address, handle_fetch) {
 GatewayClient.prototype.make_request = function(command, params, handler) {
     GatewayClient._checkFunction(handler);
 
-    id = GatewayClient._random_integer();
+    var id = GatewayClient._random_integer();
     var request = {
         "id": id,
         "command": command,
         "params": params
     };
-    message = JSON.stringify(request);
+    var message = JSON.stringify(request);
     this.websocket.send(message);
     this.handler_map[id] = handler;
 };
@@ -62,9 +62,9 @@ GatewayClient.prototype.on_error = function(evt) {
 };
 
 GatewayClient.prototype.on_message = function(evt) {
-    response = JSON.parse(evt.data);
-    id = response["id"];
-    handler = this.handler_map[id];
+    var response = JSON.parse(evt.data);
+    var id = response["id"];
+    var handler = this.handler_map[id];
     handler(response);
 };
 

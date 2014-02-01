@@ -60,7 +60,7 @@ function tx_fetched(error, tx) {
         write_to_screen('<span style="color: red;">ERROR:</span> ' + error);
         return;
     }
-    tx_str = JSON.stringify(tx, null, 2);
+    var tx_str = JSON.stringify(tx, null, 2);
     write_to_screen("Tx: <pre>" + tx_str + "</pre>");
 }
 
@@ -69,7 +69,7 @@ function history_fetched(error, history) {
         write_to_screen('<span style="color: red;">ERROR:</span> ' + error);
         return;
     }
-    history_str = JSON.stringify(history, null, 2);
+    var history_str = JSON.stringify(history, null, 2);
     write_to_screen("History: <pre>" + history_str + "</pre>");
 }
 
