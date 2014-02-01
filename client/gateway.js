@@ -66,6 +66,44 @@ GatewayClient.prototype.fetch_history = function(address, handle_fetch) {
 };
 
 /**
+ * Subscribe
+ *
+ * @param {String}   address
+ * @param {Function} handle_fetch Callback to handle subscription result
+ * @param {Function} handle_update Callback to handle the JSON object representing
+ * for updates
+ */
+GatewayClient.prototype.subscribe = function(address, handle_fetch, handle_update)
+{
+    var self = this;
+    this.make_request("subscribe_address", [address], function(response) {
+        handle_fetch(response["error"], response["result"][0]);
+        if (handle_update) {
+            self.handler_map["update."+address] = handle_update;
+        }
+    });
+}
+
+/**
+ * Renew
+ *
+ * @param {String}   address
+ * @param {Function} handle_fetch Callback to handle subscription result
+ * @param {Function} handle_update Callback to handle the JSON object representing
+ * for updates
+ */
+GatewayClient.prototype.renew = function(address, handle_fetch, handle_update)
+{
+    var self = this;
+    this.make_request("renew_address", [address], function(response) {
+        handle_fetch(response["error"], response["result"][0]);
+        if (handle_update) {
+            self.handler_map["update."+address] = handle_update;
+        }
+    });
+}
+
+/**
  * Make requests to the server
  *
  * @param {String} command
@@ -113,10 +151,21 @@ GatewayClient.prototype.on_error = function(evt) {
  */
 GatewayClient.prototype._on_message = function(evt) {
     this.on_message(evt)
-    var response = JSON.parse(evt.data);
-    var id = response["id"];
-    var handler = this.handler_map[id];
-    handler(response);
+    response = JSON.parse(evt.data);
+    id = response.id;
+    if (this.handler_map[id]) {
+        handler = this.handler_map[id];
+        handler(response);
+    } else {
+        if (response.name == "update") {
+            handler = this.handler_map["update."+response.address];
+            if (handler) {
+                handler(response);
+            } else {
+                console.log("no handler for update");
+            }
+        }
+    }
 };
 
 /**
