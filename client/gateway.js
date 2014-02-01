@@ -1,5 +1,4 @@
-function GatewayClient(connect_uri, handle_connect)
-{
+function GatewayClient(connect_uri, handle_connect) {
     var self = this;
     this.handler_map = {};
     this.websocket = new WebSocket(connect_uri);
@@ -17,30 +16,27 @@ function GatewayClient(connect_uri, handle_connect)
     };
 }
 
-GatewayClient.prototype.on_close = function(evt)
-{
-    write_to_screen("DISCONNECTED");
-}
-GatewayClient.prototype.on_error = function(evt)
-{
-    write_to_screen('<span style="color: red;">ERROR:</span> ' + evt.data);
-}
-GatewayClient.prototype.on_message = function(evt)
-{
-    response = JSON.parse(evt.data);
-    id = response["id"];
-    handler = this.handler_map[id];
-    handler(response);
-}
+GatewayClient.prototype.fetch_last_height = function(handle_fetch) {
+    this.make_request("fetch_last_height", [], function(response) {
+        handle_fetch(response["error"], response["result"][0]);
+    });
+};
 
-function random_integer()
-{
-    return Math.floor((Math.random() * 4294967296)); 
-}
+GatewayClient.prototype.fetch_transaction = function(tx_hash, handle_fetch) {
+    this.make_request("fetch_transaction", [tx_hash], function(response) {
+        handle_fetch(response["error"], response["result"][0]);
+    });
+};
 
-GatewayClient.prototype.make_request = function(command, params, handler)
-{
-    id = random_integer();
+GatewayClient.prototype.fetch_history = function(address, handle_fetch) {
+    this.make_request("fetch_history", [address], function(response) {
+        handle_fetch(response["error"], response["result"][0]);
+    });
+};
+
+GatewayClient.prototype.make_request = function(command, params, handler) {
+
+    id = GatewayClient._random_integer();
     var request = {
         "id": id,
         "command": command,
@@ -50,26 +46,24 @@ GatewayClient.prototype.make_request = function(command, params, handler)
     write_to_screen("SENT: " + message); 
     this.websocket.send(message);
     this.handler_map[id] = handler;
-}
+};
 
-GatewayClient.prototype.fetch_last_height = function(handle_fetch)
-{
-    this.make_request("fetch_last_height", [], function(response) {
-        handle_fetch(response["error"], response["result"][0]);
-    });
-}
+GatewayClient.prototype.on_close = function(evt) {
+    write_to_screen("DISCONNECTED");
+};
 
-GatewayClient.prototype.fetch_transaction = function(tx_hash, handle_fetch)
-{
-    this.make_request("fetch_transaction", [tx_hash], function(response) {
-        handle_fetch(response["error"], response["result"][0]);
-    });
-}
+GatewayClient.prototype.on_error = function(evt) {
+    write_to_screen('<span style="color: red;">ERROR:</span> ' + evt.data);
+};
 
-GatewayClient.prototype.fetch_history = function(address, handle_fetch)
-{
-    this.make_request("fetch_history", [address], function(response) {
-        handle_fetch(response["error"], response["result"][0]);
-    });
-}
+GatewayClient.prototype.on_message = function(evt) {
+    response = JSON.parse(evt.data);
+    id = response["id"];
+    handler = this.handler_map[id];
+    handler(response);
+};
+
+GatewayClient._random_integer = function() {
+    return Math.floor((Math.random() * 4294967296)); 
+};
 
