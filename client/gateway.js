@@ -17,24 +17,31 @@ function GatewayClient(connect_uri, handle_connect) {
 }
 
 GatewayClient.prototype.fetch_last_height = function(handle_fetch) {
+    GatewayClient._checkFunction(handle_fetch);
+
     this.make_request("fetch_last_height", [], function(response) {
         handle_fetch(response["error"], response["result"][0]);
     });
 };
 
 GatewayClient.prototype.fetch_transaction = function(tx_hash, handle_fetch) {
+    GatewayClient._checkFunction(handle_fetch);
+
     this.make_request("fetch_transaction", [tx_hash], function(response) {
         handle_fetch(response["error"], response["result"][0]);
     });
 };
 
 GatewayClient.prototype.fetch_history = function(address, handle_fetch) {
+    GatewayClient._checkFunction(handle_fetch);
+
     this.make_request("fetch_history", [address], function(response) {
         handle_fetch(response["error"], response["result"][0]);
     });
 };
 
 GatewayClient.prototype.make_request = function(command, params, handler) {
+    GatewayClient._checkFunction(handler);
 
     id = GatewayClient._random_integer();
     var request = {
@@ -65,5 +72,11 @@ GatewayClient.prototype.on_message = function(evt) {
 
 GatewayClient._random_integer = function() {
     return Math.floor((Math.random() * 4294967296)); 
+};
+
+GatewayClient._checkFunction = function(func) {
+    if (typeof func !== 'function') {
+        throw "Parameter is not a function";
+    }
 };
 

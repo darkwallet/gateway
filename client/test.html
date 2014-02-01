@@ -25,12 +25,13 @@ function write_to_screen(message) {
 window.addEventListener("load", init, false);
 
 function test(client) {
+    var tx = "2604ba7d2190111dbc16b53b0f56ad4351ceabe1b9e1b4f6f1bc75e271bb09b9";
+    var address = "1DXrd29DHam37bXJQs5DTXKQwT1gmF4wDe";
     client.fetch_last_height(height_fetched);
-    client.fetch_transaction(
-        "2604ba7d2190111dbc16b53b0f56ad4351ceabe1b9e1b4f6f1bc75e271bb09b9",
-        tx_fetched);
-    client.fetch_history("1DXrd29DHam37bXJQs5DTXKQwT1gmF4wDe", history_fetched);
+    client.fetch_transaction(tx, tx_fetched);
+    client.fetch_history(address, history_fetched);
 }
+
 function height_fetched(error, height) {
     if (error) {
         write_to_screen('<span style="color: red;">ERROR:</span> ' + error);
@@ -38,6 +39,7 @@ function height_fetched(error, height) {
     }
     write_to_screen("Height: " + height);
 }
+
 function tx_fetched(error, tx) {
     if (error) {
         write_to_screen('<span style="color: red;">ERROR:</span> ' + error);
@@ -46,6 +48,7 @@ function tx_fetched(error, tx) {
     tx_str = JSON.stringify(tx, null, 2);
     write_to_screen("Tx: <pre>" + tx_str + "</pre>");
 }
+
 function history_fetched(error, history) {
     if (error) {
         write_to_screen('<span style="color: red;">ERROR:</span> ' + error);
