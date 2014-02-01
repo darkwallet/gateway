@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<meta charset="utf-8" />
-<title>WebSocket Test</title>
-<script src="gateway.js"></script>
-<script language="javascript" type="text/javascript">
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>WebSocket Test</title>
+        <script src="gateway.js"></script>
+        <script language="javascript" type="text/javascript">
 
 var output;
 
@@ -71,18 +73,19 @@ function history_fetched(error, history) {
     write_to_screen("History: <pre>" + history_str + "</pre>");
 }
 
-</script>
-<style>
+        </script>
+        <style>
 body {
     /* I love Matrix! */
     font-family: monospace;
     color: #2F2;
     background-color: #222;
 }
-</style>
-
-<h2>WebSocket Test</h2>
-<div id="output"></div>
-
+        </style>
+    </head>
+    <body>
+        <h2>WebSocket Test</h2>
+        <div id="output"></div>
+    </body>
 </html> 
 
