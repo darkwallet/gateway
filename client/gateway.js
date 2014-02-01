@@ -1,3 +1,9 @@
+/**
+ * Client to connect to a darkwallet gateway.
+ *
+ * @param {String}   connect_uri Gateway websocket URI
+ * @param {Function} handle_connect Callback to run when connected
+ */
 function GatewayClient(connect_uri, handle_connect) {
     var self = this;
     this.handler_map = {};
@@ -12,10 +18,15 @@ function GatewayClient(connect_uri, handle_connect) {
         self.on_error(evt);
     };
     this.websocket.onmessage = function(evt) {
-        self.on_message(evt);
+        self._on_message(evt);
     };
 }
 
+/**
+ * Get last height
+ *
+ * @param {Function} handle_fetch Callback to handle the returned height
+ */
 GatewayClient.prototype.fetch_last_height = function(handle_fetch) {
     GatewayClient._checkFunction(handle_fetch);
 
@@ -24,6 +35,13 @@ GatewayClient.prototype.fetch_last_height = function(handle_fetch) {
     });
 };
 
+/**
+ * Fetch transaction
+ *
+ * @param {String}   tx_hash Transaction identifier hash
+ * @param {Function} handle_fetch Callback to handle the JSON object representing
+ * the transaction 
+ */
 GatewayClient.prototype.fetch_transaction = function(tx_hash, handle_fetch) {
     GatewayClient._checkFunction(handle_fetch);
 
@@ -32,6 +50,13 @@ GatewayClient.prototype.fetch_transaction = function(tx_hash, handle_fetch) {
     });
 };
 
+/**
+ * Fetch history
+ *
+ * @param {String}   address
+ * @param {Function} handle_fetch Callback to handle the JSON object representing
+ * the history of the address
+ */
 GatewayClient.prototype.fetch_history = function(address, handle_fetch) {
     GatewayClient._checkFunction(handle_fetch);
 
@@ -40,6 +65,13 @@ GatewayClient.prototype.fetch_history = function(address, handle_fetch) {
     });
 };
 
+/**
+ * Make requests to the server
+ *
+ * @param {String} command
+ * @param {Array} params
+ * @param {Function} handler 
+ */
 GatewayClient.prototype.make_request = function(command, params, handler) {
     GatewayClient._checkFunction(handler);
 
@@ -54,24 +86,65 @@ GatewayClient.prototype.make_request = function(command, params, handler) {
     this.handler_map[id] = handler;
 };
 
+/**
+ * Close event handler
+ *
+ * @param {Object} evt event
+ */
 GatewayClient.prototype.on_close = function(evt) {
 };
 
+/**
+ * Error event handler
+ *
+ * @param {Object} evt event
+ *
+ * @throws {Object}
+ */
 GatewayClient.prototype.on_error = function(evt) {
     throw evt;
 };
 
-GatewayClient.prototype.on_message = function(evt) {
+/**
+ * After triggering message event, calls to the handler of the petition
+ *
+ * @param {Object} evt event
+ * @private
+ */
+GatewayClient.prototype._on_message = function(evt) {
+    this.on_message(evt)
     var response = JSON.parse(evt.data);
     var id = response["id"];
     var handler = this.handler_map[id];
     handler(response);
 };
 
+/**
+ * Message event handler
+ *
+ * @param {Object} evt event
+ */
+GatewayClient.prototype.on_message = function(evt) {
+}
+
+/**
+ * (Pseudo-)Random integer generator
+ *
+ * @return {Number} Random integer
+ * @private
+ */
 GatewayClient._random_integer = function() {
     return Math.floor((Math.random() * 4294967296)); 
 };
 
+/**
+ * Checks if param can be executed
+ *
+ * @param {Function} Function to be checked
+ *
+ * @throws {String} Parameter is not a function
+ * @protected
+ */
 GatewayClient._checkFunction = function(func) {
     if (typeof func !== 'function') {
         throw "Parameter is not a function";
