@@ -240,7 +240,7 @@ class ObFetchSpend(ObeliskCallbackBase):
         if len(params[0]) != 2:
             raise ValueError("Invalid outpoint")
         outpoint = obelisk.models.OutPoint()
-        outpoint.hash = params[0][0].decode("hex")
+        outpoint.hash = decode_hash(params[0][0])
         outpoint.index = params[0][1]
         return (outpoint,)
 
@@ -254,7 +254,13 @@ class ObFetchTransactionIndex(ObeliskCallbackBase):
 
     def translate_arguments(self, params):
         check_params_length(params, 1)
-        return (params[0],)
+        tx_hash = decode_hash(params[0])
+        return (tx_hash,)
+
+    def translate_response(self, result):
+        assert len(result) == 2
+        blk_height, tx_offset = result
+        return blk_height, tx_offset
 
 class ObFetchBlockHeight(ObeliskCallbackBase):
 

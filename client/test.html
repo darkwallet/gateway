@@ -61,6 +61,9 @@ function test(client) {
         ["3ca64964ecb449a70a845a437e83d6c4040b5529aaeeb5a89b50a5ab96a293f0", 0];
     write_to_screen("Fetch spend " + outpoint + "...");
     client.fetch_spend(outpoint, spend_fetched);
+
+    write_to_screen("Fetching transaction index " + tx + "...");
+    client.fetch_transaction_index(tx, tx_index_fetched);
 }
 
 function height_fetched(error, height) {
@@ -114,6 +117,14 @@ function spend_fetched(error, inpoint) {
     }
     var inpoint_str = JSON.stringify(inpoint, null, 2);
     write_to_screen("Spend input point: <pre>" + inpoint_str + "</pre>");
+}
+
+function tx_index_fetched(error, blk_height, tx_offset) {
+    if (error) {
+        write_to_screen('<span style="color: red;">ERROR:</span> ' + error);
+        return;
+    }
+    write_to_screen("Tx index: " + blk_height + " " + tx_offset + "</pre>");
 }
 
         </script>

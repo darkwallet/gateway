@@ -112,6 +112,18 @@ GatewayClient.prototype.fetch_spend = function(outpoint, handle_fetch) {
     });
 };
 
+GatewayClient.prototype.fetch_transaction_index = function(
+    tx_hash, handle_fetch)
+{
+    GatewayClient._check_function(handle_fetch);
+
+    this.make_request("fetch_transaction_index", [tx_hash],
+        function(response) {
+            result = response["result"];
+            handle_fetch(response["error"], result[0], result[1]);
+        });
+};
+
 /**
  * Renew
  *
