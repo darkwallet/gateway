@@ -184,25 +184,24 @@ class HeightHandler(BaseHTTPHandler):
 
         self.application._obelisk_handler.handle_request(self, request)
 
-
-listeners = set() # set of WebsocketHandler
-listen_lock = threading.Lock() # protects listeners
-
-
 class QuerySocketHandler(tornado.websocket.WebSocketHandler):
 
-    def initialize(self, obelisk_client):
-        # self._obelisk_handler = ObeliskHandler(obelisk_client)
-        self._obelisk_handler = ObeliskHandler(self.application.obelisk_client)
+    # Set of WebsocketHandler
+    listeners = set()
+    # Protects listeners
+    listen_lock = threading.Lock()
+
+    def initialize(self):
+        self._obelisk_handler = ObeliskHandler(self.application.client)
 
     def open(self):
         logging.info("OPEN")
-        with listen_lock:
+        with QuerySocketHandler.listen_lock:
             self.listeners.add(self)
 
     def on_close(self):
         logging.info("CLOSE")
-        with listen_lock:
+        with QuerySocketHandler.listen_lock:
             self.listeners.remove(self)
 
     def on_message(self, message):
