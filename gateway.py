@@ -40,14 +40,26 @@ class ObeliskApplication(tornado.web.Application):
         self._obelisk_handler = ObeliskHandler(self.client)
 
         handlers = [
-            (r"/block/([^/]*)(?:/)?", BlockHeaderHandler), #/block/<block hash>
-            (r"/block/([^/]*)/transactions(?:/)?", BlockTransactionsHandler), #/block/<block hash>/transactions
-            (r"/tx(?:/)?", TransactionPoolHandler), #/tx/
-            (r"/tx/([^/]*)(?:/)?", TransactionHandler), # /tx/<txid>
-            (r"/address/([^/]*)(?:/)?", AddressHistoryHandler), #/address/<address>
-            (r"/height(?:/)?", HeightHandler), #/height
+            # /block/<block hash>
+            (r"/block/([^/]*)(?:/)?", BlockHeaderHandler),
 
-            (r"/", QuerySocketHandler) #/
+            # /block/<block hash>/transactions
+            (r"/block/([^/]*)/transactions(?:/)?", BlockTransactionsHandler),
+
+            # /tx/
+            (r"/tx(?:/)?", TransactionPoolHandler),
+
+            # /tx/<txid>
+            (r"/tx/([^/]*)(?:/)?", TransactionHandler),
+
+            # /address/<address>
+            (r"/address/([^/]*)(?:/)?", AddressHistoryHandler),
+
+            # /height
+            (r"/height(?:/)?", HeightHandler),
+
+            # /
+            (r"/", QuerySocketHandler)
         ]
 
         tornado.web.Application.__init__(self, handlers, **settings)
@@ -301,8 +313,10 @@ class ObSubscribe(ObeliskCallbackBase):
     def translate_arguments(self, params):
         return params[0], self.callback_update
 
-    def callback_update(self, address_version, address_hash, height, block_hash, tx):
-        address = obelisk.bitcoin.hash_160_to_bc_address(address_hash, address_version)
+    def callback_update(self, address_version, address_hash,
+                        height, block_hash, tx):
+        address = obelisk.bitcoin.hash_160_to_bc_address(
+            address_hash, address_version)
         tx_data = obelisk.deserialize.BCDataStream()
         tx_data.write(tx)
         response = {
