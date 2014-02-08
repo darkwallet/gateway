@@ -266,7 +266,8 @@ class ObFetchBlockHeight(ObeliskCallbackBase):
 
     def translate_arguments(self, params):
         check_params_length(params, 1)
-        return (params[0],)
+        blk_hash = decode_hash(params[0])
+        return (blk_hash,)
 
 # Note to self: make tests for remaining methods.
 

@@ -124,6 +124,15 @@ GatewayClient.prototype.fetch_transaction_index = function(
         });
 };
 
+GatewayClient.prototype.fetch_block_height = function(blk_hash, handle_fetch)
+{
+    GatewayClient._check_function(handle_fetch);
+
+    this.make_request("fetch_block_height", [blk_hash], function(response) {
+        handle_fetch(response["error"], response["result"][0]);
+    });
+};
+
 /**
  * Renew
  *

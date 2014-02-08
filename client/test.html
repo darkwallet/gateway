@@ -64,6 +64,9 @@ function test(client) {
 
     write_to_screen("Fetching transaction index " + tx + "...");
     client.fetch_transaction_index(tx, tx_index_fetched);
+
+    write_to_screen("Fetch block height " + blk_hash + "...");
+    client.fetch_block_height(blk_hash, height_fetched);
 }
 
 function height_fetched(error, height) {
