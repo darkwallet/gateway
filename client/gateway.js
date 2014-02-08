@@ -28,7 +28,7 @@ function GatewayClient(connect_uri, handle_connect) {
  * @param {Function} handle_fetch Callback to handle the returned height
  */
 GatewayClient.prototype.fetch_last_height = function(handle_fetch) {
-    GatewayClient._checkFunction(handle_fetch);
+    GatewayClient._check_function(handle_fetch);
 
     this.make_request("fetch_last_height", [], function(response) {
         handle_fetch(response["error"], response["result"][0]);
@@ -39,11 +39,11 @@ GatewayClient.prototype.fetch_last_height = function(handle_fetch) {
  * Fetch transaction
  *
  * @param {String}   tx_hash Transaction identifier hash
- * @param {Function} handle_fetch Callback to handle the JSON object representing
- * the transaction 
+ * @param {Function} handle_fetch Callback to handle the JSON object
+ * representing the transaction 
  */
 GatewayClient.prototype.fetch_transaction = function(tx_hash, handle_fetch) {
-    GatewayClient._checkFunction(handle_fetch);
+    GatewayClient._check_function(handle_fetch);
 
     this.make_request("fetch_transaction", [tx_hash], function(response) {
         handle_fetch(response["error"], response["result"][0]);
@@ -54,11 +54,11 @@ GatewayClient.prototype.fetch_transaction = function(tx_hash, handle_fetch) {
  * Fetch history
  *
  * @param {String}   address
- * @param {Function} handle_fetch Callback to handle the JSON object representing
- * the history of the address
+ * @param {Function} handle_fetch Callback to handle the JSON object
+ * representing the history of the address
  */
 GatewayClient.prototype.fetch_history = function(address, handle_fetch) {
-    GatewayClient._checkFunction(handle_fetch);
+    GatewayClient._check_function(handle_fetch);
 
     this.make_request("fetch_history", [address], function(response) {
         handle_fetch(response["error"], response["result"][0]);
@@ -70,10 +70,11 @@ GatewayClient.prototype.fetch_history = function(address, handle_fetch) {
  *
  * @param {String}   address
  * @param {Function} handle_fetch Callback to handle subscription result
- * @param {Function} handle_update Callback to handle the JSON object representing
- * for updates
+ * @param {Function} handle_update Callback to handle the JSON object
+ * representing for updates
  */
-GatewayClient.prototype.subscribe = function(address, handle_fetch, handle_update)
+GatewayClient.prototype.subscribe = function(
+    address, handle_fetch, handle_update)
 {
     var self = this;
     this.make_request("subscribe_address", [address], function(response) {
@@ -89,8 +90,8 @@ GatewayClient.prototype.subscribe = function(address, handle_fetch, handle_updat
  *
  * @param {String}   address
  * @param {Function} handle_fetch Callback to handle subscription result
- * @param {Function} handle_update Callback to handle the JSON object representing
- * for updates
+ * @param {Function} handle_update Callback to handle the JSON object
+ * representing for updates
  */
 GatewayClient.prototype.renew = function(address, handle_fetch, handle_update)
 {
@@ -111,7 +112,7 @@ GatewayClient.prototype.renew = function(address, handle_fetch, handle_update)
  * @param {Function} handler 
  */
 GatewayClient.prototype.make_request = function(command, params, handler) {
-    GatewayClient._checkFunction(handler);
+    GatewayClient._check_function(handler);
 
     var id = GatewayClient._random_integer();
     var request = {
@@ -194,7 +195,7 @@ GatewayClient._random_integer = function() {
  * @throws {String} Parameter is not a function
  * @protected
  */
-GatewayClient._checkFunction = function(func) {
+GatewayClient._check_function = function(func) {
     if (typeof func !== 'function') {
         throw "Parameter is not a function";
     }
