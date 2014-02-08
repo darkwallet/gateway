@@ -5,8 +5,8 @@ import tornado.options
 import tornado.web
 import tornado.websocket
 import os.path
-import json
 import obelisk
+import obelisk.deserialize
 import json
 import threading
 import random
@@ -32,11 +32,11 @@ ioloop = tornado.ioloop.IOLoop.instance()
 
 class ObeliskApplication(tornado.web.Application):
 
-    def __init__(self):
+    def __init__(self, service):
 
         settings = dict(debug=True)
 
-        self.client = obelisk.ObeliskOfLightClient('tcp://85.25.198.97:8081')
+        self.client = obelisk.ObeliskOfLightClient(service)
         self._obelisk_handler = ObeliskHandler(self.client)
 
         handlers = [
@@ -235,6 +235,27 @@ class ObeliskCallbackBase(object):
     def translate_response(self, result):
         return result
 
+# Utils used for decoding arguments.
+
+def check_params_length(params, length):
+    if len(params) != length:
+        raise ValueError("Invalid parameter list length")
+
+def decode_hash(encoded_hash):
+    decoded_hash = encoded_hash.decode("hex")
+    if len(decoded_hash) != 32:
+        raise ValueError("Not a hash")
+    return decoded_hash
+
+def unpack_index(index):
+    if type(index) != str and type(index) != int:
+        raise ValueError("Unknown index type")
+    if type(index) == str and len(index) == 32:
+        index = index.decode("hex")
+    return index
+
+# The actual callback specialisations.
+
 class ObFetchLastHeight(ObeliskCallbackBase):
 
     def translate_response(self, result):
@@ -244,11 +265,8 @@ class ObFetchLastHeight(ObeliskCallbackBase):
 class ObFetchTransaction(ObeliskCallbackBase):
 
     def translate_arguments(self, params):
-        if len(params) != 1:
-            raise ValueError("Invalid parameter list length")
-        tx_hash = params[0].decode("hex")
-        if len(tx_hash) != 32:
-            raise ValueError("Not a tx hash")
+        check_params_length(params, 1)
+        tx_hash = decode_hash(params[0])
         return (tx_hash,)
 
     def translate_response(self, result):
@@ -278,6 +296,28 @@ class ObFetchTransaction(ObeliskCallbackBase):
             tx_dict["outputs"].append(output_dict)
         return (tx_dict,)
 
+class ObSubscribe(ObeliskCallbackBase):
+
+    def translate_arguments(self, params):
+        return params[0], self.callback_update
+
+    def callback_update(self, address_version, address_hash, height, block_hash, tx):
+        address = obelisk.bitcoin.hash_160_to_bc_address(address_hash, address_version)
+        tx_data = obelisk.deserialize.BCDataStream()
+        tx_data.write(tx)
+        response = {
+            "type": "update",
+            "address": address,
+            "height": height,
+            "block_hash": block_hash.encode('hex'),
+            "tx": obelisk.deserialize.parse_Transaction(tx_data)
+        }
+        try:
+            self._socket.write_message(json.dumps(response))
+        except:
+            logging.error("Error sending message", exc_info=True)
+
+
 class ObFetchHistory(ObeliskCallbackBase):
 
     def translate_response(self, result):
@@ -295,18 +335,36 @@ class ObFetchHistory(ObeliskCallbackBase):
                 (o_hash, o_index, o_height, value, s_hash, s_index, s_height))
         return (history,)
 
+class ObFetchBlockHeader(ObeliskCallbackBase):
+
+    def translate_arguments(self, params):
+        check_params_length(params, 1)
+        index = unpack_index(params[0])
+        return (index,)
+
+class ObFetchBlockTransactionHashes(ObeliskCallbackBase):
+
+    def translate_arguments(self, params):
+        check_params_length(params, 1)
+        index = unpack_index(params[0])
+        return (index,)
 
 class ObeliskHandler:
 
     valid_messages = ['fetch_block_header', 'fetch_history', 'subscribe',
         'fetch_last_height', 'fetch_transaction', 'fetch_spend',
-        'fetch_transaction_index', 'fetch_block_transaction_hashes',
+        'fetch_transaction_index',
+        'fetch_block_transaction_hashes',
         'fetch_block_height', 'update', 'renew']
 
     handlers = {
-        "fetch_last_height": ObFetchLastHeight,
-        "fetch_transaction": ObFetchTransaction,
-        "fetch_history":     ObFetchHistory,
+        "fetch_last_height":                ObFetchLastHeight,
+        "fetch_transaction":                ObFetchTransaction,
+        "fetch_history":                    ObFetchHistory,
+        "fetch_block_header":               ObFetchBlockHeader,
+        "fetch_block_transaction_hashes":   ObFetchBlockTransactionHashes,
+        "renew_address":                    ObSubscribe,
+        "subscribe_address":                ObSubscribe,
     }
 
     def __init__(self, client):
@@ -330,11 +388,15 @@ class ObeliskHandler:
 
 
 
-if __name__ == "__main__":
-    application = ObeliskApplication()
+def main(service):
+    application = ObeliskApplication(service)
 
     tornado.autoreload.start(ioloop)
 
     application.listen(8888)
     ioloop.start()
+
+if __name__ == "__main__":
+    service = "tcp://85.25.198.97:9091"
+    main(service)
 
