@@ -52,6 +52,15 @@ function test(client) {
     var blk_hash = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f";
     write_to_screen("Fetch block header " + blk_hash + "...");
     client.fetch_block_header(blk_hash, header_fetched);
+
+    var blk_height = 100000;
+    write_to_screen("Fetch block tx hashes " + blk_height + "...");
+    client.fetch_block_transaction_hashes(blk_height, tx_hashes_fetched);
+
+    var outpoint =
+        ["3ca64964ecb449a70a845a437e83d6c4040b5529aaeeb5a89b50a5ab96a293f0", 0];
+    write_to_screen("Fetch spend " + outpoint + "...");
+    client.fetch_spend(outpoint, spend_fetched);
 }
 
 function height_fetched(error, height) {
@@ -87,6 +96,24 @@ function header_fetched(error, header) {
     }
     var header_str = JSON.stringify(header, null, 2);
     write_to_screen("Block header: <pre>" + header_str + "</pre>");
+}
+
+function tx_hashes_fetched(error, tx_hashes) {
+    if (error) {
+        write_to_screen('<span style="color: red;">ERROR:</span> ' + error);
+        return;
+    }
+    var tx_hashes_str = JSON.stringify(tx_hashes, null, 2);
+    write_to_screen("Block tx hashes: <pre>" + tx_hashes_str + "</pre>");
+}
+
+function spend_fetched(error, inpoint) {
+    if (error) {
+        write_to_screen('<span style="color: red;">ERROR:</span> ' + error);
+        return;
+    }
+    var inpoint_str = JSON.stringify(inpoint, null, 2);
+    write_to_screen("Spend input point: <pre>" + inpoint_str + "</pre>");
 }
 
         </script>

@@ -225,11 +225,30 @@ class ObFetchBlockTransactionHashes(ObeliskCallbackBase):
         index = unpack_index(params[0])
         return (index,)
 
+    def translate_response(self, result):
+        assert len(result) == 1
+        tx_hashes = []
+        for tx_hash in result[0]:
+            assert len(tx_hash) == 32
+            tx_hashes.append(tx_hash.encode("hex"))
+        return (tx_hashes,)
+
 class ObFetchSpend(ObeliskCallbackBase):
 
     def translate_arguments(self, params):
         check_params_length(params, 1)
-        return (params[0],)
+        if len(params[0]) != 2:
+            raise ValueError("Invalid outpoint")
+        outpoint = obelisk.models.OutPoint()
+        outpoint.hash = params[0][0].decode("hex")
+        outpoint.index = params[0][1]
+        return (outpoint,)
+
+    def translate_response(self, result):
+        assert len(result) == 1
+        outpoint = result[0]
+        outpoint = (outpoint.hash.encode("hex"), outpoint.index)
+        return (outpoint,)
 
 class ObFetchTransactionIndex(ObeliskCallbackBase):
 

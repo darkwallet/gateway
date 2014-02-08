@@ -93,6 +93,25 @@ GatewayClient.prototype.fetch_block_header = function(index, handle_fetch) {
     });
 };
 
+GatewayClient.prototype.fetch_block_transaction_hashes = function(
+    index, handle_fetch)
+{
+    GatewayClient._check_function(handle_fetch);
+
+    this.make_request("fetch_block_transaction_hashes", [index],
+        function(response) {
+            handle_fetch(response["error"], response["result"][0]);
+        });
+};
+
+GatewayClient.prototype.fetch_spend = function(outpoint, handle_fetch) {
+    GatewayClient._check_function(handle_fetch);
+
+    this.make_request("fetch_spend", [outpoint], function(response) {
+        handle_fetch(response["error"], response["result"][0]);
+    });
+};
+
 /**
  * Renew
  *
