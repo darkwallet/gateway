@@ -9,8 +9,6 @@ import obelisk
 import obelisk.deserialize
 import json
 import threading
-import random
-import base58
 
 import rest_handlers
 
@@ -159,30 +157,8 @@ class ObFetchTransaction(ObeliskCallbackBase):
 
     def translate_response(self, result):
         assert len(result) == 1
-        tx = result[0]
-        tx_dict = {
-            "version": tx.version,
-            "locktime": tx.locktime,
-            "inputs": [],
-            "outputs": []
-        }
-        for input in tx.inputs:
-            input_dict = {
-                "previous_output": [
-                    input.previous_output.hash.encode("hex"),
-                    input.previous_output.index
-                ],
-                "script": input.script.encode("hex"),
-                "sequence": input.sequence
-            }
-            tx_dict["inputs"].append(input_dict)
-        for output in tx.outputs:
-            output_dict = {
-                "value": output.value,
-                "script": output.script.encode("hex")
-            }
-            tx_dict["outputs"].append(output_dict)
-        return (tx_dict,)
+        tx = result[0].encode("hex")
+        return (tx,)
 
 class ObSubscribe(ObeliskCallbackBase):
 

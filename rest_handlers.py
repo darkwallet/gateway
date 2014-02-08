@@ -1,5 +1,6 @@
 import tornado.web
 import json
+import base58
 import random
 
 from tornado.web import asynchronous, HTTPError
