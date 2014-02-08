@@ -16,10 +16,9 @@ import rest_handlers
 
 # Install Tornado reactor loop into Twister
 # http://www.tornadoweb.org/en/stable/twisted.html
-
-# from tornado.platform.twisted import TwistedIOLoop
-# from twisted.internet import reactor
-# TwistedIOLoop().install()
+from tornado.platform.twisted import TwistedIOLoop
+from twisted.internet import reactor
+TwistedIOLoop().install()
 
 from tornado.options import define, options
 
@@ -95,7 +94,6 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
 
     def on_fetch(self, response):
         self.write_message(json.dumps(response))
-
 
 class ObeliskCallbackBase(object):
 
@@ -286,7 +284,7 @@ def main(service):
     tornado.autoreload.start(ioloop)
 
     application.listen(8888)
-    ioloop.start()
+    reactor.run()
 
 if __name__ == "__main__":
     service = "tcp://85.25.198.97:9091"
