@@ -25,6 +25,7 @@ import tornado.websocket
 import os.path
 import json
 import obelisk
+import obelisk.deserialize
 
 # Install Tornado reactor loop into Twister
 # http://www.tornadoweb.org/en/stable/twisted.html
@@ -157,6 +158,28 @@ class ObFetchTransaction(ObeliskCallbackBase):
             tx_dict["outputs"].append(output_dict)
         return (tx_dict,)
 
+class ObSubscribe(ObeliskCallbackBase):
+
+    def translate_arguments(self, params):
+        return params[0], self.callback_update
+
+    def callback_update(self, address_version, address_hash, height, block_hash, tx):
+        address = obelisk.bitcoin.hash_160_to_bc_address(address_hash, address_version)
+        tx_data = obelisk.deserialize.BCDataStream()
+        tx_data.write(tx)
+        response = {
+            "type": "update",
+            "address": address,
+            "height": height,
+            "block_hash": block_hash.encode('hex'),
+            "tx": obelisk.deserialize.parse_Transaction(tx_data)
+        }
+        try:
+            self._socket.write_message(json.dumps(response))
+        except:
+            logging.error("Error sending message", exc_info=True)
+
+
 class ObFetchHistory(ObeliskCallbackBase):
 
     def translate_response(self, result):
@@ -202,6 +225,8 @@ class ObeliskHandler:
         "fetch_history":                    ObFetchHistory,
         "fetch_block_header":               ObFetchBlockHeader,
         "fetch_block_transaction_hashes":   ObFetchBlockTransactionHashes,
+        "renew_address":                    ObSubscribe,
+        "subscribe_address":                ObSubscribe,
     }
 
     def __init__(self, client):
@@ -231,6 +256,6 @@ def main():
     reactor.run()
 
 if __name__ == "__main__":
-    service = "tcp://85.25.198.97:9091"
+    service = "tcp://localhost:9091"
     main()
 
