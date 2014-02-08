@@ -96,6 +96,27 @@ class ObeliskCallbackBase(object):
     def translate_response(self, result):
         return result
 
+# Utils used for decoding arguments.
+
+def check_params_length(params, length):
+    if len(params) != length:
+        raise ValueError("Invalid parameter list length")
+
+def decode_hash(encoded_hash):
+    decoded_hash = encoded_hash.decode("hex")
+    if len(decoded_hash) != 32:
+        raise ValueError("Not a hash")
+    return decoded_hash
+
+def unpack_index(index):
+    if type(index) != str and type(index) != int:
+        raise ValueError("Unknown index type")
+    if type(index) == str and len(index) == 32:
+        index = index.decode("hex")
+    return index
+
+# The actual callback specialisations.
+
 class ObFetchLastHeight(ObeliskCallbackBase):
 
     def translate_response(self, result):
@@ -105,11 +126,8 @@ class ObFetchLastHeight(ObeliskCallbackBase):
 class ObFetchTransaction(ObeliskCallbackBase):
 
     def translate_arguments(self, params):
-        if len(params) != 1:
-            raise ValueError("Invalid parameter list length")
-        tx_hash = params[0].decode("hex")
-        if len(tx_hash) != 32:
-            raise ValueError("Not a tx hash")
+        check_params_length(params, 1)
+        tx_hash = decode_hash(params[0])
         return (tx_hash,)
 
     def translate_response(self, result):
@@ -156,17 +174,34 @@ class ObFetchHistory(ObeliskCallbackBase):
                 (o_hash, o_index, o_height, value, s_hash, s_index, s_height))
         return (history,)
 
+class ObFetchBlockHeader(ObeliskCallbackBase):
+
+    def translate_arguments(self, params):
+        check_params_length(params, 1)
+        index = unpack_index(params[0])
+        return (index,)
+
+class ObFetchBlockTransactionHashes(ObeliskCallbackBase):
+
+    def translate_arguments(self, params):
+        check_params_length(params, 1)
+        index = unpack_index(params[0])
+        return (index,)
+
 class ObeliskHandler:
 
     valid_messages = ['fetch_block_header', 'fetch_history', 'subscribe',
         'fetch_last_height', 'fetch_transaction', 'fetch_spend',
-        'fetch_transaction_index', 'fetch_block_transaction_hashes',
+        'fetch_transaction_index',
+        'fetch_block_transaction_hashes',
         'fetch_block_height', 'update', 'renew']
 
     handlers = {
-        "fetch_last_height": ObFetchLastHeight,
-        "fetch_transaction": ObFetchTransaction,
-        "fetch_history":     ObFetchHistory,
+        "fetch_last_height":                ObFetchLastHeight,
+        "fetch_transaction":                ObFetchTransaction,
+        "fetch_history":                    ObFetchHistory,
+        "fetch_block_header":               ObFetchBlockHeader,
+        "fetch_block_transaction_hashes":   ObFetchBlockTransactionHashes,
     }
 
     def __init__(self, client):
