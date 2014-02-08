@@ -134,10 +134,14 @@ def decode_hash(encoded_hash):
     return decoded_hash
 
 def unpack_index(index):
+    if type(index) == unicode:
+        index = str(index)
     if type(index) != str and type(index) != int:
         raise ValueError("Unknown index type")
-    if type(index) == str and len(index) == 32:
+    if type(index) == str:
         index = index.decode("hex")
+        if len(index) != 32:
+            raise ValueError("Invalid length for hash index")
     return index
 
 # The actual callback specialisations.
@@ -163,6 +167,7 @@ class ObFetchTransaction(ObeliskCallbackBase):
 class ObSubscribe(ObeliskCallbackBase):
 
     def translate_arguments(self, params):
+        check_params_length(params, 1)
         return params[0], self.callback_update
 
     def callback_update(self, address_version, address_hash,
@@ -208,6 +213,11 @@ class ObFetchBlockHeader(ObeliskCallbackBase):
         index = unpack_index(params[0])
         return (index,)
 
+    def translate_response(self, result):
+        assert len(result) == 1
+        header = result[0].encode("hex")
+        return (header,)
+
 class ObFetchBlockTransactionHashes(ObeliskCallbackBase):
 
     def translate_arguments(self, params):
@@ -215,13 +225,27 @@ class ObFetchBlockTransactionHashes(ObeliskCallbackBase):
         index = unpack_index(params[0])
         return (index,)
 
-class ObeliskHandler:
+class ObFetchSpend(ObeliskCallbackBase):
 
-    valid_messages = ['fetch_block_header', 'fetch_history', 'subscribe',
-        'fetch_last_height', 'fetch_transaction', 'fetch_spend',
-        'fetch_transaction_index',
-        'fetch_block_transaction_hashes',
-        'fetch_block_height', 'update', 'renew']
+    def translate_arguments(self, params):
+        check_params_length(params, 1)
+        return (params[0],)
+
+class ObFetchTransactionIndex(ObeliskCallbackBase):
+
+    def translate_arguments(self, params):
+        check_params_length(params, 1)
+        return (params[0],)
+
+class ObFetchBlockHeight(ObeliskCallbackBase):
+
+    def translate_arguments(self, params):
+        check_params_length(params, 1)
+        return (params[0],)
+
+# Note to self: make tests for remaining methods.
+
+class ObeliskHandler:
 
     handlers = {
         "fetch_last_height":                ObFetchLastHeight,
@@ -229,6 +253,10 @@ class ObeliskHandler:
         "fetch_history":                    ObFetchHistory,
         "fetch_block_header":               ObFetchBlockHeader,
         "fetch_block_transaction_hashes":   ObFetchBlockTransactionHashes,
+        "fetch_spend":                      ObFetchSpend,
+        "fetch_transaction_index":          ObFetchTransactionIndex,
+        "fetch_block_height":               ObFetchBlockHeight,
+        # Address stuff
         "renew_address":                    ObSubscribe,
         "subscribe_address":                ObSubscribe,
     }

@@ -34,17 +34,24 @@ function write_to_screen(message) {
 window.addEventListener("load", init, false);
 
 function test(client) {
-    var tx = "2604ba7d2190111dbc16b53b0f56ad4351ceabe1b9e1b4f6f1bc75e271bb09b9";
-    var address = "1DXrd29DHam37bXJQs5DTXKQwT1gmF4wDe";
-
     write_to_screen("Fetching last height...");
     client.fetch_last_height(height_fetched);
 
+    var tx = "2604ba7d2190111dbc16b53b0f56ad4351ceabe1b9e1b4f6f1bc75e271bb09b9";
     write_to_screen("Fetching transaction " + tx + "...");
     client.fetch_transaction(tx, tx_fetched);
 
+    var address = "1DXrd29DHam37bXJQs5DTXKQwT1gmF4wDe";
     write_to_screen("Fetching address " + address + "...");
     client.fetch_history(address, history_fetched);
+
+    var blk_height = 0;
+    write_to_screen("Fetch block header " + blk_height + "...");
+    client.fetch_block_header(blk_height, header_fetched);
+
+    var blk_hash = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f";
+    write_to_screen("Fetch block header " + blk_hash + "...");
+    client.fetch_block_header(blk_hash, header_fetched);
 }
 
 function height_fetched(error, height) {
@@ -71,6 +78,15 @@ function history_fetched(error, history) {
     }
     var history_str = JSON.stringify(history, null, 2);
     write_to_screen("History: <pre>" + history_str + "</pre>");
+}
+
+function header_fetched(error, header) {
+    if (error) {
+        write_to_screen('<span style="color: red;">ERROR:</span> ' + error);
+        return;
+    }
+    var header_str = JSON.stringify(header, null, 2);
+    write_to_screen("Block header: <pre>" + header_str + "</pre>");
 }
 
         </script>

@@ -80,10 +80,18 @@ GatewayClient.prototype.subscribe = function(
     this.make_request("subscribe_address", [address], function(response) {
         handle_fetch(response["error"], response["result"][0]);
         if (handle_update) {
-            self.handler_map["update."+address] = handle_update;
+            self.handler_map["update." + address] = handle_update;
         }
     });
 }
+
+GatewayClient.prototype.fetch_block_header = function(index, handle_fetch) {
+    GatewayClient._check_function(handle_fetch);
+
+    this.make_request("fetch_block_header", [index], function(response) {
+        handle_fetch(response["error"], response["result"][0]);
+    });
+};
 
 /**
  * Renew
@@ -154,19 +162,16 @@ GatewayClient.prototype._on_message = function(evt) {
     this.on_message(evt)
     response = JSON.parse(evt.data);
     id = response.id;
-    if (this.handler_map[id]) {
-        handler = this.handler_map[id];
-        handler(response);
-    } else {
-        if (response.name == "update") {
-            handler = this.handler_map["update."+response.address];
-            if (handler) {
-                handler(response);
-            } else {
-                console.log("no handler for update");
-            }
-        }
+    // Should be a separate map entirely. This is a hack.
+    if (response.name == "update")
+        id = "update." + response.address;
+    // Prefer flat code over nested.
+    if (!this.handler_map[id]) {
+        console.log("Handler not found");
+        return;
     }
+    handler = this.handler_map[id];
+    handler(response);
 };
 
 /**
