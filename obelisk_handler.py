@@ -1,8 +1,5 @@
 import logging
-import tornado
 import obelisk
-
-ioloop = tornado.ioloop.IOLoop.instance()
 
 class ObeliskCallbackBase(object):
 
@@ -20,11 +17,7 @@ class ObeliskCallbackBase(object):
             "error": error,
             "result": result
         }
-        try:
-            # calling write_message or the socket is not thread safe
-            ioloop.add_callback(self._handler.on_fetch, response)
-        except:
-            logging.error("Error adding callback", exc_info=True)
+        self._handler.queue_response(response)
 
     def translate_arguments(self, params):
         return params
@@ -199,18 +192,18 @@ class ObeliskHandler:
     def __init__(self, client):
         self._client = client
 
-    def handle_request(self, handler, request):
+    def handle_request(self, socket_handler, request):
         command = request["command"]
         if command not in self.handlers:
             return False
         method = getattr(self._client, request["command"])
         params = request["params"]
         # Create callback handler to write response to the socket.
-        handler = self.handlers[command](handler, request["id"])
+        handler = self.handlers[command](socket_handler, request["id"])
         try:
             params = handler.translate_arguments(params)
-        except:
-            logging.error("Bad parameters specified", exc_info=True)
+        except Exception as exc:
+            logging.error("Bad parameters specified: %s", exc, exc_info=True)
             return True
         method(*params, cb=handler)
         return True

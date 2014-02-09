@@ -1,7 +1,7 @@
 from _brc import *
 
 def started(ec):
-    print ec
+    print "started:", ec
 
 def newtx(tx_hash):
     print "tx:", tx_hash.encode("hex")

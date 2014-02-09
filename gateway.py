@@ -19,13 +19,14 @@ from tornado.options import define, options
 
 import rest_handlers
 import obelisk_handler
+import broadcast
 
 define("port", default=8888, help="run on the given port", type=int)
 
 global ioloop
 ioloop = tornado.ioloop.IOLoop.instance()
 
-class ObeliskApplication(tornado.web.Application):
+class GatewayApplication(tornado.web.Application):
 
     def __init__(self, service):
 
@@ -69,6 +70,7 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
 
     def initialize(self):
         self._obelisk_handler = self.application.obelisk_handler
+        self._brc_handler = broadcast.BroadcastHandler()
 
     def open(self):
         logging.info("OPEN")
@@ -80,24 +82,41 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
         with QuerySocketHandler.listen_lock:
             self.listeners.remove(self)
 
+    def _check_request(self, request):
+        return request.has_key("command") and request.has_key("id") and \
+            request.has_key("params") and type(request["params"]) == list
+
     def on_message(self, message):
         try:
             request = json.loads(message)
         except:
             logging.error("Error decoding message: %s", message, exc_info=True)
         logging.info("Request: %s", request)
+        # Check request is correctly formed.
+        if not self._check_request(request):
+            logging.error("Malformed request: %s", request, exc_info=True)
+            return
+        # Try different handlers until one accepts request and
+        # processes it.
         if self._obelisk_handler.handle_request(self, request):
+            return
+        if self._brc_handler.handle_request(self, request):
             return
         logging.warning("Unhandled command. Dropping request.")
 
-    def on_fetch(self, response):
+    def _send_response(self, response):
         self.write_message(json.dumps(response))
 
+    def queue_response(self, response):
+        try:
+            # calling write_message or the socket is not thread safe
+            ioloop.add_callback(self._send_response, response)
+        except:
+            logging.error("Error adding callback", exc_info=True)
+
 def main(service):
-    application = ObeliskApplication(service)
-
+    application = GatewayApplication(service)
     tornado.autoreload.start(ioloop)
-
     application.listen(8888)
     reactor.run()
 
