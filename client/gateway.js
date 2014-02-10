@@ -133,6 +133,16 @@ GatewayClient.prototype.fetch_block_height = function(blk_hash, handle_fetch)
     });
 };
 
+GatewayClient.prototype.broadcast_transaction = function(
+    raw_tx, handle_fetch)
+{
+    GatewayClient._check_function(handle_fetch);
+
+    this.make_request("broadcast_transaction", [raw_tx], function(response) {
+        handle_fetch(response["error"], response["result"][0]);
+    });
+};
+
 /**
  * Renew
  *
