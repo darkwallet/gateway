@@ -2,11 +2,8 @@ import threading
 import brc
 import obelisk
 
-def hash_transaction(self, raw_tx):
+def hash_transaction(raw_tx):
     return obelisk.Hash(raw_tx)[::-1]
-
-def test_callback(ratio):
-    print "Ratio:", ratio
 
 class Broadcaster:
 
@@ -49,9 +46,11 @@ class Broadcaster:
             self._monitor_tx[tx_hash] = [0, notify_callback]
 
     def broadcast(self, raw_tx, notify_callback):
-        #self._brc.broadcast(raw_tx)
+        if not self._brc.broadcast(raw_tx):
+            return False
         tx_hash = hash_transaction(raw_tx)
         self._monitor(tx_hash, notify_callback)
+        return True
 
 class NotifyCallback:
 
@@ -74,12 +73,23 @@ class BroadcastHandler:
 
     def handle_request(self, socket_handler, request):
         if request["command"] != "broadcast_transaction":
-            return
+            return False
         if not request["params"]:
             logging.error("No param for broadcast specified.")
-            return
+            return True
         raw_tx = request["params"][0].decode("hex")
         request_id = request["id"]
         notify = NotifyCallback(socket_handler, request_id)
-        self._brc.broadcast(raw_tx, notify)
+        # If broadcast fails then we send an error response.
+        # This can happen if the tx cannot be deserialized (for example).
+        if not self._brc.broadcast(raw_tx, notify):
+            response = {
+                "id": request_id,
+                "error": 2,
+                "result": []
+            }
+            socket_handler.queue_response(response)
+            return True
+        notify(0.0)
+        return True
 

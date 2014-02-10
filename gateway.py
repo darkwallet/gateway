@@ -34,6 +34,7 @@ class GatewayApplication(tornado.web.Application):
 
         client = obelisk.ObeliskOfLightClient(service)
         self.obelisk_handler = obelisk_handler.ObeliskHandler(client)
+        self.brc_handler = broadcast.BroadcastHandler()
 
         handlers = [
             # /block/<block hash>
@@ -70,7 +71,7 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
 
     def initialize(self):
         self._obelisk_handler = self.application.obelisk_handler
-        self._brc_handler = broadcast.BroadcastHandler()
+        self._brc_handler = self.application.brc_handler
 
     def open(self):
         logging.info("OPEN")
@@ -102,7 +103,8 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
             return
         if self._brc_handler.handle_request(self, request):
             return
-        logging.warning("Unhandled command. Dropping request.")
+        logging.warning("Unhandled command. Dropping request: %s",
+            request, exc_info=True)
 
     def _send_response(self, response):
         self.write_message(json.dumps(response))
