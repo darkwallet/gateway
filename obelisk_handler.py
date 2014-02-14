@@ -19,6 +19,9 @@ class ObeliskCallbackBase(object):
         }
         self._handler.queue_response(response)
 
+    def call_method(self, method, params):
+        method(*params, cb=self)
+
     def translate_arguments(self, params):
         return params
 
@@ -94,6 +97,21 @@ class ObSubscribe(ObeliskCallbackBase):
 
 
 class ObFetchHistory(ObeliskCallbackBase):
+
+    def call_method(self, method, params):
+        assert len(params) == 2
+        address, from_height = params
+        method(address, self, from_height)
+
+    def translate_arguments(self, params):
+        if len(params) != 1 and len(params) != 2:
+            raise ValueError("Invalid parameter list length")
+        address = params[0]
+        if len(params) == 2:
+            from_height = params[1]
+        else:
+            from_height = 0
+        return (address, from_height)
 
     def translate_response(self, result):
         assert len(result) == 1
@@ -173,6 +191,31 @@ class ObFetchBlockHeight(ObeliskCallbackBase):
         blk_hash = decode_hash(params[0])
         return (blk_hash,)
 
+class ObFetchStealth(ObeliskCallbackBase):
+
+    def call_method(self, method, params):
+        assert len(params) == 2
+        prefix, from_height = params
+        method(prefix, self, from_height)
+
+    def translate_arguments(self, params):
+        if len(params) != 1 and len(params) != 2:
+            raise ValueError("Invalid parameter list length")
+        prefix = params[0]
+        if len(params) == 2:
+            from_height = params[1]
+        else:
+            from_height = 0
+        return (prefix, from_height)
+
+    def translate_response(self, result):
+        assert len(result) == 1
+        stealth_results = []
+        for ephemkey, address, tx_hash in result[0]:
+            stealth_results.append(
+                (ephemkey.encode("hex"), address, tx_hash.encode("hex")))
+        return (stealth_results,)
+
 class ObeliskHandler:
 
     handlers = {
@@ -184,6 +227,7 @@ class ObeliskHandler:
         "fetch_spend":                      ObFetchSpend,
         "fetch_transaction_index":          ObFetchTransactionIndex,
         "fetch_block_height":               ObFetchBlockHeight,
+        "fetch_stealth":                    ObFetchStealth,
         # Address stuff
         "renew_address":                    ObSubscribe,
         "subscribe_address":                ObSubscribe,
@@ -205,6 +249,6 @@ class ObeliskHandler:
         except Exception as exc:
             logging.error("Bad parameters specified: %s", exc, exc_info=True)
             return True
-        method(*params, cb=handler)
+        handler.call_method(method, params)
         return True
 
