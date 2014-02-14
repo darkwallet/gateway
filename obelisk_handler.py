@@ -119,11 +119,8 @@ class ObFetchHistory(ObeliskCallbackBase):
         for row in result[0]:
             o_hash, o_index, o_height, value, s_hash, s_index, s_height = row
             o_hash = o_hash.encode("hex")
-            s_hash = s_hash.encode("hex")
-            if s_index == 4294967295:
-                s_hash = None
-                s_index = None
-                s_height = None
+            if s_hash is not None:
+                s_hash = s_hash.encode("hex")
             history.append(
                 (o_hash, o_index, o_height, value, s_hash, s_index, s_height))
         return (history,)
