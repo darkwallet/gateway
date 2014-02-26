@@ -19,6 +19,7 @@ from tornado.options import define, options
 
 import rest_handlers
 import obelisk_handler
+import jsonchan
 import broadcast
 
 define("port", default=8888, help="run on the given port", type=int)
@@ -35,6 +36,7 @@ class GatewayApplication(tornado.web.Application):
         client = obelisk.ObeliskOfLightClient(service)
         self.obelisk_handler = obelisk_handler.ObeliskHandler(client)
         self.brc_handler = broadcast.BroadcastHandler()
+        self.json_chan_handler = jsonchan.JsonChanHandler()
 
         handlers = [
             # /block/<block hash>
@@ -72,6 +74,7 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
     def initialize(self):
         self._obelisk_handler = self.application.obelisk_handler
         self._brc_handler = self.application.brc_handler
+        self._json_chan = self.application.json_chan
 
     def open(self):
         logging.info("OPEN")
@@ -99,6 +102,8 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
             return
         # Try different handlers until one accepts request and
         # processes it.
+        if self._json_chan_handler.handle_request(self, request):
+            return
         if self._obelisk_handler.handle_request(self, request):
             return
         if self._brc_handler.handle_request(self, request):

@@ -91,7 +91,8 @@ class ObSubscribe(ObeliskCallbackBase):
             "tx": obelisk.deserialize.parse_Transaction(tx_data)
         }
         try:
-            self._socket.write_message(json.dumps(response))
+            # self._socket.write_message(json.dumps(response))
+            self._handler.queue_response(response)
         except:
             logging.error("Error sending message", exc_info=True)
 
