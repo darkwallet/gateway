@@ -1,15 +1,26 @@
 import time
 import math
+import logging
+
+VALID_SECTIONS = ['b', 'coinjoin', 'tmp', 'chat']
+MAX_THREADS = 2000
+MAX_DATA_SIZE = 20000
 
 class DataTooBigError(Exception):
     def __str__(self):
-        print "Data is too big"
+        return  "Data is too big"
+class InvalidSectionError(Exception):
+    def __str__(self):
+        return "Invalid section, valid are: " + ", ".join(VALID_SECTIONS)
+class MissingThread(Exception):
+    def __str__(self):
+        return "Thread doesnt exist"
 class IncorrectThreadId(Exception):
     def __str__(self):
-        print "Thread id must be alphanumeric"
+        return "Thread id must be alphanumeric"
 
 class JsonChanSection(object):
-    max_threads = 200
+    max_threads = MAX_THREADS
     def __init__(self, name):
         self._name = name
         self._threads = {}
@@ -33,7 +44,7 @@ class JsonChanSection(object):
                 pass # already deleted
 
     def post(self, thread_id, data):
-        if len(data) > 4000:
+        if len(data) > MAX_DATA_SIZE:
             raise DataTooBigError()
         if not thread_id.isalnum():
             raise IncorrectThreadId()
@@ -48,14 +59,16 @@ class JsonChanSection(object):
         return thread
 
     def get_thread(self, thread_id):
-        return self._threads[thread_id]
+        if thread_id in self._threads:
+            return self._threads[thread_id]
+        raise MissingThread()
 
     def get_threads(self):
         return self._threads.keys()
 
 class JsonChan(object):
     def __init__(self):
-        self._subsections = {}
+        self._sections = {}
 
     def post(self, section_name, thread_id, data):
         section = self.get_section(section_name)
@@ -66,9 +79,12 @@ class JsonChan(object):
         return section.get_threads()
 
     def get_section(self, name):
-        if not name in self._subsections:
-            self._subsections[name] = JsonChanSection(name)
-        return self._subsections[name]
+        if not name in self._sections:
+            if name in VALID_SECTIONS:
+                self._sections[name] = JsonChanSection(name)
+            else:
+                raise InvalidSectionError()
+        return self._sections[name]
 
 class JsonChanHandlerBase(object):
 
@@ -99,24 +115,27 @@ class JsonChanHandlerBase(object):
         return result
 
 class ObJsonChanPost(JsonChanHandlerBase):
+    def process(self, params):
+        self._json_chan.post(params[0], params[1], params[2])
+        self.process_response(None, {'result': 'ok', 'method': 'post'})
 
-    def translate_arguments(self, params):
-        check_params_length(params, 1)
-        tx_hash = decode_hash(params[0])
-        return (tx_hash,)
+class ObJsonChanList(JsonChanHandlerBase):
+    def process(self, params):
+        threads = self._json_chan.get_threads(params[0])
+        self.process_response(None, {'result': 'ok', 'method': 'list', 'threads': threads})
 
-    def translate_response(self, result):
-        assert len(result) == 1
-        tx = result[0].encode("hex")
-        return (tx,)
+class ObJsonChanGet(JsonChanHandlerBase):
+    def process(self, params):
+        thread = self._json_chan.get_section(params[0]).get_thread(params[1])
+        self.process_response(None, {'result': 'ok', 'method': 'get', 'thread': thread})
 
 
 class JsonChanHandler:
 
     handlers = {
         "chan_post":                ObJsonChanPost,
-        "chan_list":                ObJsonChanPost,
-        "chan_get":                 ObJsonChanPost
+        "chan_list":                ObJsonChanList,
+        "chan_get":                 ObJsonChanGet
     }
 
     def __init__(self):
@@ -134,7 +153,10 @@ class JsonChanHandler:
         except Exception as exc:
             logging.error("Bad parameters specified: %s", exc, exc_info=True)
             return True
-        handler.process(params)
+        try:
+            handler.process(params)
+        except Exception as e:
+            handler.process_response(str(e), {})
         return True
 
 if __name__ == '__main__':

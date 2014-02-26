@@ -74,7 +74,7 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
     def initialize(self):
         self._obelisk_handler = self.application.obelisk_handler
         self._brc_handler = self.application.brc_handler
-        self._json_chan = self.application.json_chan
+        self._json_chan_handler = self.application.json_chan_handler
 
     def open(self):
         logging.info("OPEN")
