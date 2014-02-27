@@ -1,5 +1,5 @@
 {
-  "name": "Darkwallet Gateway",
+  "name": "darkwallet_gateway",
   "version": "0.1",
   "homepage": "https://github.com/darkwallet/gateway",
   "authors": [
@@ -22,6 +22,6 @@
     "test",
     "tests",
     "*.py",
-    "brc/*"
+    "brc"
   ]
 }
