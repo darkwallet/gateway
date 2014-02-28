@@ -4,8 +4,9 @@ import logging
 import traceback
 from collections import defaultdict
 
-VALID_SECTIONS = ['b', 'coinjoin', 'tmp', 'chat']
+VALID_SECTIONS = ['b', 'coinjoin', 'tmp', 'chat', 'identity', 'i']
 MAX_THREADS = 2000
+MAX_POSTS = 200
 MAX_DATA_SIZE = 20000
 
 class DataTooBigError(Exception):
@@ -17,6 +18,9 @@ class InvalidSectionError(Exception):
 class MissingThread(Exception):
     def __str__(self):
         return "Thread doesnt exist"
+class ClientGone(Exception):
+    def __str__(self):
+        return "Client is gone"
 class IncorrectThreadId(Exception):
     def __str__(self):
         return "Thread id must be alphanumeric"
@@ -43,9 +47,9 @@ class JsonChanSection(object):
             except Exception as e:
                 print "Failed callback", e
                 traceback.print_exc()
-                failed.push(callback)
+                failed.append(callback)
         # remove failed
-        for callback in list(self.subscriptions[thread_id]):
+        for callback in list(failed):
             self.subscriptions[thread_id].remove(callback)
 
     def find_last_thread(self):
@@ -74,6 +78,8 @@ class JsonChanSection(object):
         if thread_id in self._threads:
             thread = self._threads[thread_id]
             thread['posts'].append(data)
+            if len(thread['posts']) > MAX_POSTS:
+                thread['posts'].pop(0)
             thread['timestamp'] = time.time()
         else:
             thread = {'timestamp': time.time(), 'posts': [data]}
