@@ -1,6 +1,8 @@
 import time
 import math
 import logging
+import traceback
+from collections import defaultdict
 
 VALID_SECTIONS = ['b', 'coinjoin', 'tmp', 'chat']
 MAX_THREADS = 2000
@@ -21,9 +23,30 @@ class IncorrectThreadId(Exception):
 
 class JsonChanSection(object):
     max_threads = MAX_THREADS
+    subscriptions = defaultdict(list)
     def __init__(self, name):
         self._name = name
         self._threads = {}
+
+    def subscribe(self, thread_id, callback):
+        self.subscriptions[thread_id].append(callback)
+
+    def unsubscribe(self, thread_id, callback):
+        if calback in self.subscriptions[thread_id]:
+            self.subscriptions[thread_id].remove(callback)
+
+    def notify_subscribers(self, thread_id, data):
+        failed = []
+        for callback in list(self.subscriptions[thread_id]):
+            try:
+                callback(data)
+            except Exception as e:
+                print "Failed callback", e
+                traceback.print_exc()
+                failed.push(callback)
+        # remove failed
+        for callback in list(self.subscriptions[thread_id]):
+            self.subscriptions[thread_id].remove(callback)
 
     def find_last_thread(self):
         sel_thread_id = self._threads.keys()[0]
@@ -56,6 +79,7 @@ class JsonChanSection(object):
             thread = {'timestamp': time.time(), 'posts': [data]}
             self._threads[thread_id] = thread
         self.purge_threads()
+        self.notify_subscribers(thread_id, {'thread': thread_id, 'data': data, 'timestamp': thread['timestamp']})
         return thread
 
     def get_thread(self, thread_id):
@@ -88,10 +112,11 @@ class JsonChan(object):
 
 class JsonChanHandlerBase(object):
 
-    def __init__(self, handler, request_id, json_chan):
+    def __init__(self, handler, request_id, json_chan, gateway):
         self._handler = handler
         self._request_id = request_id
         self._json_chan = json_chan
+        self._gateway = gateway
 
     def process_response(self, error, raw_result):
         assert error is None or type(error) == str
@@ -129,13 +154,29 @@ class ObJsonChanGet(JsonChanHandlerBase):
         thread = self._json_chan.get_section(params[0]).get_thread(params[1])
         self.process_response(None, {'result': 'ok', 'method': 'get', 'thread': thread})
 
+class ObJsonChanSubscribe(JsonChanHandlerBase):
+    def process(self, params):
+        self._params = params
+        section = self._json_chan.get_section(params[0])
+        section.subscribe(params[1], self.send_notification)
+        self.process_response(None, {'result': 'ok', 'method': 'subscribe', 'thread': params[1]})
+
+    def send_notification(self, data):
+        data['type'] = 'chan_update'
+        if not self._handler.ws_connection:
+            raise ClientGone()
+            #section = self._json_chan.get_section(self._params[0])
+            #section.unsubscribe(self._params[1], self.send_notification)
+        self._handler.queue_response(data)
+
 
 class JsonChanHandler:
 
     handlers = {
         "chan_post":                ObJsonChanPost,
         "chan_list":                ObJsonChanList,
-        "chan_get":                 ObJsonChanGet
+        "chan_get":                 ObJsonChanGet,
+        "chan_subscribe":           ObJsonChanSubscribe
     }
 
     def __init__(self):
@@ -147,7 +188,7 @@ class JsonChanHandler:
             return False
         params = request["params"]
         # Create callback handler to write response to the socket.
-        handler = self.handlers[command](socket_handler, request["id"], self._json_chan)
+        handler = self.handlers[command](socket_handler, request["id"], self._json_chan, self)
         try:
             params = handler.translate_arguments(params)
         except Exception as exc:
