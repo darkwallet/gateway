@@ -1,31 +1,28 @@
 import threading
-import brc
 import obelisk
+import zmq
 
 def hash_transaction(raw_tx):
     return obelisk.Hash(raw_tx)[::-1]
 
 class Broadcaster:
 
-    broadcast_hosts = 10
-    radar_hosts = 20
+    # Should be the same as number of outbound connections in Obelisk
+    radar_hosts = 8
 
-    def __init__(self):
+    def __init__(self, client):
         self._monitor_tx = {}
         self._monitor_lock = threading.Lock()
-        self._brc = brc.Broadcaster()
-        self._brc.start(
-            1, Broadcaster.broadcast_hosts, Broadcaster.radar_hosts,
-            self._new_tx, self._started)
-
-    def _started(self, ec):
-        print "Started broadcaster:", ec
+        self._ctx = zmq.Context()
+        self._socket = self._ctx.socket(zmq.PUSH)
+        self._socket.connect("tcp://localhost:9109")
 
     def _increment_monitored_tx(self, tx_hash):
         with self._monitor_lock:
             self._monitor_tx[tx_hash][0] += 1
             return self._monitor_tx[tx_hash]
 
+    # TODO: Should subscribe to Obelisk for new txs
     def _new_tx(self, tx_hash):
         try:
             count, notify_callback = self._increment_monitored_tx(tx_hash)
@@ -46,8 +43,7 @@ class Broadcaster:
             self._monitor_tx[tx_hash] = [0, notify_callback]
 
     def broadcast(self, raw_tx, notify_callback):
-        if not self._brc.broadcast(raw_tx):
-            return False
+        self._socket.send(raw_tx)
         tx_hash = hash_transaction(raw_tx)
         self._monitor(tx_hash, notify_callback)
         return True

@@ -35,7 +35,7 @@ class GatewayApplication(tornado.web.Application):
 
         client = obelisk.ObeliskOfLightClient(service)
         self.obelisk_handler = obelisk_handler.ObeliskHandler(client)
-        self.brc_handler = broadcast.BroadcastHandler()
+        self.brc_handler = broadcast.BroadcastHandler(client)
         self.json_chan_handler = jsonchan.JsonChanHandler()
 
         handlers = [
@@ -128,6 +128,6 @@ def main(service):
     reactor.run()
 
 if __name__ == "__main__":
-    service = "tcp://85.25.198.97:9091"
+    service = "tcp://127.0.0.1:8081"
     main(service)
 
