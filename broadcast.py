@@ -64,8 +64,8 @@ class NotifyCallback:
 
 class BroadcastHandler:
 
-    def __init__(self):
-        self._brc = Broadcaster()
+    def __init__(self, client):
+        self._brc = Broadcaster(client)
 
     def handle_request(self, socket_handler, request):
         if request["command"] != "broadcast_transaction":
