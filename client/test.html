@@ -14,7 +14,7 @@ function init() {
         write_to_screen("CONNECTED");
         test(client);
     };
-    var client = new GatewayClient("ws://85.25.198.97:8888/", handle_connect);
+    var client = new GatewayClient("ws://obelisk.unsystem.net:8888/", handle_connect);
 
     client.on_error = function(evt) {
         write_to_screen('<span style="color: red;">ERROR:</span> ' + evt.data);
