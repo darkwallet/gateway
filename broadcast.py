@@ -12,7 +12,7 @@ class Broadcaster:
         self._socket = self._ctx.socket(zmq.PUSH)
         self._socket.connect("tcp://localhost:9109")
 
-    def broadcast(self, raw_tx, notify_callback):
+    def broadcast(self, raw_tx):
         self._socket.send(raw_tx)
 
 class NotifyCallback:
@@ -48,7 +48,7 @@ class BroadcastHandler:
         # And monitor.
         notify = NotifyCallback(socket_handler, request_id)
         tx_hash = hash_transaction(raw_tx)
-        self._txrad.monitor(tx_hash, notify_callback)
+        self._txrad.monitor(tx_hash, notify)
         notify(0.0)
         return True
 
