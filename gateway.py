@@ -35,7 +35,7 @@ class GatewayApplication(tornado.web.Application):
 
         client = obelisk.ObeliskOfLightClient(service)
         self.obelisk_handler = obelisk_handler.ObeliskHandler(client)
-        self.brc_handler = broadcast.BroadcastHandler(client)
+        self.brc_handler = broadcast.BroadcastHandler()
         self.json_chan_handler = jsonchan.JsonChanHandler()
 
         handlers = [
