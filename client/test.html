@@ -76,6 +76,9 @@ function test(client) {
     prefix = [2, 1763505291];
     write_to_screen("Fetch stealth " + prefix);
     client.fetch_stealth(prefix, stealth_fetched, 0);
+
+    write_to_screen("Fetch ticker");
+    client.fetch_ticker("EUR", ticker_fetched);
 }
 
 function height_fetched(error, height) {
@@ -154,6 +157,15 @@ function stealth_fetched(error, results) {
     }
     var results_str = JSON.stringify(results, null, 2);
     write_to_screen("Stealth results: <pre>" + results_str + "</pre>");
+}
+
+function ticker_fetched(error, result) {
+    if (error) {
+        write_to_screen('<span style="color: red;">ERROR:</span> ' + error);
+        return;
+    }
+    var results_str = JSON.stringify(result, null, 2);
+    write_to_screen("Ticker results: <pre>" + results_str + "</pre>");
 }
 
         </script>

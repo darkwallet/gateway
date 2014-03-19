@@ -218,6 +218,18 @@ GatewayClient.prototype.chan_subscribe = function(section_name, thread_id, handl
     });
 };
 
+/**
+ * Ticker functionality
+ */
+
+GatewayClient.prototype.fetch_ticker = function(currency, handle_fetch)
+{
+    GatewayClient._check_function(handle_fetch);
+
+    this.make_request("fetch_ticker", [currency], function(response) {
+        handle_fetch(response["error"], response["result"][0]);
+    });
+};
 
 /**
  * Make requests to the server
