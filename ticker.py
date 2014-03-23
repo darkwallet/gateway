@@ -31,7 +31,7 @@ class Ticker(threading.Thread):
         url = "https://api.bitcoinaverage.com/ticker/global/%s" % currency
         try:
             f = urllib2.urlopen(url)
-        except HTTPError:
+        except urllib2.HTTPError:
             return
         ticker_values = json.loads(f.read())
         with self.lock:
