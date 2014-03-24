@@ -81,14 +81,12 @@ class ObSubscribe(ObeliskCallbackBase):
                         height, block_hash, tx):
         address = obelisk.bitcoin.hash_160_to_bc_address(
             address_hash, address_version)
-        tx_data = obelisk.deserialize.BCDataStream()
-        tx_data.write(tx)
         response = {
             "type": "update",
             "address": address,
             "height": height,
             "block_hash": block_hash.encode('hex'),
-            "tx": obelisk.deserialize.parse_Transaction(tx_data)
+            "tx": tx.encode("hex")
         }
         try:
             # self._socket.write_message(json.dumps(response))
