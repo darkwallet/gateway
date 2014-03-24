@@ -7,11 +7,6 @@ class Ticker(threading.Thread):
 
     daemon = True
 
-    currencies = (
-        "EUR",
-        "USD"
-    )
-
     def __init__(self):
         super(Ticker, self).__init__()
         self.lock = threading.Lock()
@@ -24,18 +19,18 @@ class Ticker(threading.Thread):
             time.sleep(5 * 60)
 
     def pull_prices(self):
-        for currency in Ticker.currencies:
-            self.query_ticker(currency)
+        ticker_all = self.query_ticker()
+        with self.lock:
+            for currency, ticker_values in ticker_all.iteritems():
+                self.ticker[currency] = ticker_values
 
-    def query_ticker(self, currency):
-        url = "https://api.bitcoinaverage.com/ticker/global/%s" % currency
+    def query_ticker(self):
+        url = "https://api.bitcoinaverage.com/ticker/global/all"
         try:
             f = urllib2.urlopen(url)
         except HTTPError:
             return
-        ticker_values = json.loads(f.read())
-        with self.lock:
-            self.ticker[currency] = ticker_values
+        return json.loads(f.read())
 
     def fetch(self, currency):
         with self.lock:
