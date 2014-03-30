@@ -8,6 +8,7 @@ import os.path
 import obelisk
 import json
 import threading
+import code
 
 # Install Tornado reactor loop into Twister
 # http://www.tornadoweb.org/en/stable/twisted.html
@@ -130,10 +131,24 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
         except:
             logging.error("Error adding callback", exc_info=True)
 
+class DebugConsole(threading.Thread):
+
+    daemon = True
+
+    def __init__(self, application):
+        self.application = application
+        super(DebugConsole, self).__init__()
+        self.start()
+
+    def run(self):
+        console = code.InteractiveConsole()
+        code.interact(local=dict(globals(), **locals()))
+
 def main(service):
     application = GatewayApplication(service)
     tornado.autoreload.start(ioloop)
     application.listen(8888)
+    debug_console = DebugConsole(application)
     reactor.run()
 
 if __name__ == "__main__":
