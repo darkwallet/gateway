@@ -28,7 +28,7 @@ class TxRadar:
             # This tx was not broadcasted by us.
             return
         # Percentage propagation throughout network.
-        ratio = float(count) / Broadcaster.radar_hosts
+        ratio = float(count) / TxRadar.radar_hosts
         # Maybe one node reports a tx back to us twice.
         # No biggie. We just cover it up, and pretend it didn't happen.
         ratio = min(ratio, 1.0)
