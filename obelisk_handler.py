@@ -3,8 +3,6 @@ from twisted.internet import reactor
 import logging
 import obelisk
 
-from tornado.log import app_log
-
 class ObeliskCallbackBase(object):
 
     def __init__(self, handler, request_id, client):
