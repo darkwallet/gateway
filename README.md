@@ -16,7 +16,7 @@ Running:
 
 To run with more logging:
 
-python gateway.py --logging=debug --log_to_stderr=true
+python daemon/gateway.py --logging=debug --log_to_stderr=true
 
 you can also use other tornado logging options, check it's documentation.
 
