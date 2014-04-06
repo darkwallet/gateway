@@ -1,5 +1,28 @@
 # Gateway
 
+The darkwallet gateway is a daemon providing the following services to wallets:
+
+ * Websocket connectivity (talks zmq with an obelisk backend)
+ * Obelisk protocol streamlining (doesn't talk obelisk proto but a simplified and parsed protocol)
+ * Broadcaster and transaction radar
+ * Simple lobby services (chatroom service with no guarantees)
+ * Provices currency prices ticker (over bitcoinaverage at the moment)
+
+Generally the gateway tries to provide all services a wallet may need acting as a proxy to mask the user address so as to not compromise it in many services.
+
+
+Running:
+-----------
+
+To run with more logging:
+
+python gateway.py --logging=debug --log_to_stderr=true
+
+you can also use other tornado logging options, check it's documentation.
+
+Client cheatlist:
+-----------
+
 Fetching a block header
 ```
 $ curl http://localhost:8888/block/000000000000000145f738890dc703e7637b677f15e9a49ea2eeca6e6e3c5f51
