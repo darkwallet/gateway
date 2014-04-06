@@ -3,19 +3,34 @@
  *
  * @param {String}   connect_uri Gateway websocket URI
  * @param {Function} handle_connect Callback to run when connected
+ * @param {Function} handle_disconnect Callback to run when disconnected
+ * @param {Function} handle_error Callback to run on errors (except connection errors go to handle_connect first parameter).
+ *
+ * handle_* callbacks take parameters as (error, data)
  */
-function GatewayClient(connect_uri, handle_connect) {
+function GatewayClient(connect_uri, handle_connect, handle_disconnect, handle_error) {
     var self = this;
     this.handler_map = {};
+    this.connected = false;
     this.websocket = new WebSocket(connect_uri);
     this.websocket.onopen = function(evt) {
+        self.connected = true;
         handle_connect();
     };
     this.websocket.onclose = function(evt) {
+        self.connected = false;
         self.on_close(evt);
+        if (handle_disconnect) {
+            handle_disconnect(null, evt)
+        }
     };
     this.websocket.onerror = function(evt) {
-        self.on_error(evt);
+        // TODO: should probably disconnect
+        if (!self.connected) {
+            handle_connect(evt);
+        } else if (handle_error) {
+            handle_error(evt);
+        }
     };
     this.websocket.onmessage = function(evt) {
         self._on_message(evt);
@@ -220,6 +235,9 @@ GatewayClient.prototype.chan_subscribe = function(section_name, thread_id, handl
 
 /**
  * Ticker functionality
+ *
+ * @param {String} currency, like USD, EUR...
+ * @param {Function} handle_fetch
  */
 
 GatewayClient.prototype.fetch_ticker = function(currency, handle_fetch)
