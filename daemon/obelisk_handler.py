@@ -81,7 +81,10 @@ class ObFetchTransaction(ObeliskCallbackBase):
 class ObSubscribe(ObeliskCallbackBase):
 
     def __call__(self, err, data):
-        ObeliskCallbackBase.__call__(self, err, data)
+        if self._initial:
+            # only notify the client on initial subscription, not renew
+            ObeliskCallbackBase.__call__(self, err, data)
+            self._initial = False
 
         # schedule renew for subscription
         if self._handler._connected:
@@ -94,8 +97,10 @@ class ObSubscribe(ObeliskCallbackBase):
             self.call_client_method('renew_address', [self._address])
 
     def translate_arguments(self, params):
+        # this gets called only on the initial invokation to subscribe.
         check_params_length(params, 1)
         self._address = params[0]
+        self._initial = True
         return params[0], self.callback_update
 
     def callback_update(self, address_version, address_hash,
