@@ -1,11 +1,16 @@
+from twisted.internet import reactor
+
 import logging
 import obelisk
 
+from tornado.log import app_log
+
 class ObeliskCallbackBase(object):
 
-    def __init__(self, handler, request_id):
+    def __init__(self, handler, request_id, client):
         self._handler = handler
         self._request_id = request_id
+        self._client = client
 
     def __call__(self, *args):
         assert len(args) > 1
@@ -21,6 +26,10 @@ class ObeliskCallbackBase(object):
 
     def call_method(self, method, params):
         method(*params, cb=self)
+
+    def call_client_method(self, method_name, params):
+        method = getattr(self._client, method_name)
+        self.call_method(method, params)
 
     def translate_arguments(self, params):
         return params
@@ -73,14 +82,29 @@ class ObFetchTransaction(ObeliskCallbackBase):
 
 class ObSubscribe(ObeliskCallbackBase):
 
+    def __call__(self, err, data):
+        ObeliskCallbackBase.__call__(self, err, data)
+
+        # schedule renew for subscription
+        if self._handler._connected:
+            if not self._address in self._handler._subscriptions['obelisk']:
+                self._handler._subscriptions['obelisk'][self._address] = self.callback_update
+            reactor.callLater(120, self.renew)
+
+    def renew(self, *args):
+        if self._handler._connected:
+            self.call_client_method('renew_address', [self._address])
+
     def translate_arguments(self, params):
         check_params_length(params, 1)
+        self._address = params[0]
         return params[0], self.callback_update
 
     def callback_update(self, address_version, address_hash,
                         height, block_hash, tx):
         address = obelisk.bitcoin.hash_160_to_bc_address(
             address_hash, address_version)
+
         response = {
             "type": "update",
             "address": address,
@@ -212,6 +236,12 @@ class ObFetchStealth(ObeliskCallbackBase):
                 (ephemkey.encode("hex"), address, tx_hash.encode("hex")))
         return (stealth_results,)
 
+class ObDisconnectClient(ObeliskCallbackBase):
+    def call_client_method(self, method_name, params):
+        for address in self._handler._subscriptions['obelisk']:
+            self._client.unsubscribe_address(address, self._handler._subscriptions['obelisk'][address])
+            # TODO: could also unsubscribe other callbacks from this client
+
 class ObeliskHandler:
 
     handlers = {
@@ -227,6 +257,7 @@ class ObeliskHandler:
         # Address stuff
         "renew_address":                    ObSubscribe,
         "subscribe_address":                ObSubscribe,
+        "disconnect_client":                ObDisconnectClient
     }
 
     def __init__(self, client):
@@ -236,15 +267,15 @@ class ObeliskHandler:
         command = request["command"]
         if command not in self.handlers:
             return False
-        method = getattr(self._client, request["command"])
+
         params = request["params"]
         # Create callback handler to write response to the socket.
-        handler = self.handlers[command](socket_handler, request["id"])
+        handler = self.handlers[command](socket_handler, request["id"], self._client)
         try:
             params = handler.translate_arguments(params)
         except Exception as exc:
             logging.error("Bad parameters specified: %s", exc, exc_info=True)
             return True
-        handler.call_method(method, params)
+        handler.call_client_method(request["command"], params)
         return True
 

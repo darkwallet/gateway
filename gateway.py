@@ -9,6 +9,7 @@ import obelisk
 import json
 import threading
 import code
+from collections import defaultdict
 
 # Install Tornado reactor loop into Twister
 # http://www.tornadoweb.org/en/stable/twisted.html
@@ -16,7 +17,10 @@ from tornado.platform.twisted import TwistedIOLoop
 from twisted.internet import reactor
 TwistedIOLoop().install()
 
-from tornado.options import define, options
+from tornado.options import define, options, parse_command_line
+
+parse_command_line()
+
 
 import rest_handlers
 import obelisk_handler
@@ -34,7 +38,7 @@ class GatewayApplication(tornado.web.Application):
     def __init__(self, service):
 
         settings = dict(debug=True)
-
+        settings.update(options.as_dict())
         client = obelisk.ObeliskOfLightClient(service)
         self.obelisk_handler = obelisk_handler.ObeliskHandler(client)
         self.brc_handler = broadcast.BroadcastHandler()
@@ -79,14 +83,20 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
         self._brc_handler = self.application.brc_handler
         self._json_chan_handler = self.application.json_chan_handler
         self._ticker_handler = self.application.ticker_handler
+        self._subscriptions = defaultdict(dict)
+        self._connected = False
 
     def open(self):
         logging.info("OPEN")
         with QuerySocketHandler.listen_lock:
             self.listeners.add(self)
+        self._connected = True
 
     def on_close(self):
         logging.info("CLOSE")
+        disconnect_msg = {'command': 'disconnect_client', 'id': 0, 'params': []}
+        self._connected = False
+        self._obelisk_handler.handle_request(self, disconnect_msg)
         with QuerySocketHandler.listen_lock:
             self.listeners.remove(self)
 
@@ -99,7 +109,7 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
             request = json.loads(message)
         except:
             logging.error("Error decoding message: %s", message, exc_info=True)
-        logging.info("Request: %s", request)
+
         # Check request is correctly formed.
         if not self._check_request(request):
             logging.error("Malformed request: %s", request, exc_info=True)
