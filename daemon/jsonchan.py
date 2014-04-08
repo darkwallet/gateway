@@ -36,7 +36,7 @@ class JsonChanSection(object):
         self.subscriptions[thread_id].append(callback)
 
     def unsubscribe(self, thread_id, callback):
-        if calback in self.subscriptions[thread_id]:
+        if callback in self.subscriptions[thread_id]:
             self.subscriptions[thread_id].remove(callback)
 
     def notify_subscribers(self, thread_id, data):
