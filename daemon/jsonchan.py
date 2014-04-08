@@ -166,7 +166,9 @@ class ObJsonChanSubscribe(JsonChanHandlerBase):
         section = self._json_chan.get_section(params[0])
         section.subscribe(params[1], self.send_notification)
         # store in handler memory to be able to unsubscribe
-        self._handler._subscriptions['channel.'+params[1]].append(self.send_notification)
+        if not params[1] in self._handler._subscriptions['channel']:
+            self._handler._subscriptions['channel'][params[1]] = []
+        self._handler._subscriptions['channel'][params[1]].append(self.send_notification)
         self.process_response(None, {'result': 'ok', 'method': 'subscribe', 'thread': params[1]})
 
     def send_notification(self, data):
@@ -181,11 +183,11 @@ class ObJsonChanUnsubscribe(JsonChanHandlerBase):
     def process(self, params):
         self._params = params
         section = self._json_chan.get_section(params[0])
-        channel_id = 'channel.'+params[1]
-        if channel_id in self._handler._subscriptions:
-            for cb in self._handler._subscriptions[channel_id]:
-                section.unsubscribe(params[1], cb)
-            self._handler._subscriptions.pop(channel_id)
+        thread_id = params[1]
+        if thread_id in self._handler._subscriptions['channel']:
+            for cb in self._handler._subscriptions['channel'][thread_id]:
+                section.unsubscribe(thread_id, cb)
+            self._handler._subscriptions['channel'].pop(thread_id)
             self.process_response(None, {'result': 'ok', 'method': 'unsubscribe', 'thread': params[1]})
         else:
             self.process_response(None, {'result': 'error', 'error': 'Thread does not exist', 'thread': params[1]})
