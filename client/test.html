@@ -43,7 +43,7 @@ function test(client) {
 
     var address = "1DXrd29DHam37bXJQs5DTXKQwT1gmF4wDe";
     write_to_screen("Fetching address " + address + "...");
-    client.fetch_history(address, history_fetched);
+    client.fetch_history(address, 0, history_fetched);
 
     var blk_height = 0;
     write_to_screen("Fetch block header " + blk_height + "...");
