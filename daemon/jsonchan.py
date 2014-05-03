@@ -199,7 +199,7 @@ class ObJsonChanUnsubscribe(JsonChanHandlerBase):
         else:
             self.process_response(None, {'result': 'error', 'error': 'Thread does not exist', 'thread': params[1]})
  
-class ObDisconnectClient(ObeliskCallbackBase):
+class ObDisconnectClient(JsonChanHandlerBase):
     def process(self, params):
         for thread_id in self._handler._subscriptions['channel']:
             for section_name, cb in self._handler._subscriptions['channel'][thread_id]:
