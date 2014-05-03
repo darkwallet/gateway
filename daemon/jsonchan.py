@@ -168,7 +168,7 @@ class ObJsonChanSubscribe(JsonChanHandlerBase):
         # store in handler memory to be able to unsubscribe
         if not params[1] in self._handler._subscriptions['channel']:
             self._handler._subscriptions['channel'][params[1]] = []
-        self._handler._subscriptions['channel'][params[1]].append(self.send_notification)
+        self._handler._subscriptions['channel'][params[1]].append([params[0], self.send_notification])
         self.process_response(None, {'result': 'ok', 'method': 'subscribe', 'thread': params[1]})
 
     def send_notification(self, data):
@@ -185,13 +185,29 @@ class ObJsonChanUnsubscribe(JsonChanHandlerBase):
         section = self._json_chan.get_section(params[0])
         thread_id = params[1]
         if thread_id in self._handler._subscriptions['channel']:
-            for cb in self._handler._subscriptions['channel'][thread_id]:
-                section.unsubscribe(thread_id, cb)
-            self._handler._subscriptions['channel'].pop(thread_id)
+            i = 0
+            to_remove = []
+            for section_name, cb in self._handler._subscriptions['channel'][thread_id]:
+                if section_name == params[0]:
+                    section.unsubscribe(thread_id, cb)
+                    to_remove.append(i)
+                i += 1
+            toremove.reverse()
+            for idx in toremove:
+                self._handler._subscriptions['channel'][thread_id].pop(idx) 
             self.process_response(None, {'result': 'ok', 'method': 'unsubscribe', 'thread': params[1]})
         else:
             self.process_response(None, {'result': 'error', 'error': 'Thread does not exist', 'thread': params[1]})
  
+class ObDisconnectClient(ObeliskCallbackBase):
+    def process(self, params):
+        for thread_id in self._handler._subscriptions['channel']:
+            for section_name, cb in self._handler._subscriptions['channel'][thread_id]:
+                section = self._json_chan.get_section(section_name)
+                section.unsubscribe(thread_id, cb)
+ 
+        self._handler._subscriptions['channel'] = {}
+
 
 class JsonChanHandler:
 
@@ -200,7 +216,8 @@ class JsonChanHandler:
         "chan_list":                ObJsonChanList,
         "chan_get":                 ObJsonChanGet,
         "chan_subscribe":           ObJsonChanSubscribe,
-        "chan_unsubscribe":         ObJsonChanUnsubscribe
+        "chan_unsubscribe":         ObJsonChanUnsubscribe,
+        "disconnect_client":        ObDisconnectClient
     }
 
     def __init__(self):

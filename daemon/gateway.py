@@ -97,6 +97,7 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
         disconnect_msg = {'command': 'disconnect_client', 'id': 0, 'params': []}
         self._connected = False
         self._obelisk_handler.handle_request(self, disconnect_msg)
+        self._json_chan_handler.handle_request(self, disconnect_msg)
         with QuerySocketHandler.listen_lock:
             self.listeners.remove(self)
 
