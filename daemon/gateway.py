@@ -11,6 +11,8 @@ import threading
 import code
 from collections import defaultdict
 
+from crypto2crypto import CryptoTransportLayer
+
 # Install Tornado reactor loop into Twister
 # http://www.tornadoweb.org/en/stable/twisted.html
 from tornado.platform.twisted import TwistedIOLoop
@@ -132,6 +134,7 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
         try:
             self.write_message(json.dumps(response))
         except tornado.websocket.WebSocketClosedError:
+            self._connected = False
             logging.warning("Dropping response to closed socket: %s",
                response, exc_info=True)
 

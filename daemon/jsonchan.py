@@ -173,7 +173,7 @@ class ObJsonChanSubscribe(JsonChanHandlerBase):
 
     def send_notification(self, data):
         data['type'] = 'chan_update'
-        if not self._handler.ws_connection:
+        if not self._handler.ws_connection or not self._handler._connected:
             raise ClientGone()
             #section = self._json_chan.get_section(self._params[0])
             #section.unsubscribe(self._params[1], self.send_notification)
