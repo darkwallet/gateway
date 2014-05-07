@@ -11,6 +11,7 @@ import threading
 import code
 from collections import defaultdict
 
+import config
 
 # Install Tornado reactor loop into Twister
 # http://www.tornadoweb.org/en/stable/twisted.html
@@ -44,7 +45,7 @@ class GatewayApplication(tornado.web.Application):
         client = obelisk.ObeliskOfLightClient(service)
         self.obelisk_handler = obelisk_handler.ObeliskHandler(client)
         self.brc_handler = broadcast.BroadcastHandler()
-        self.p2p = CryptoTransportLayer(8889)
+        self.p2p = CryptoTransportLayer(config.get('p2p-port', 8889))
         self.p2p.join_network()
         self.json_chan_handler = jsonchan.JsonChanHandler(self.p2p)
         self.ticker_handler = ticker.TickerHandler()
@@ -163,11 +164,11 @@ class DebugConsole(threading.Thread):
 def main(service):
     application = GatewayApplication(service)
     tornado.autoreload.start(ioloop)
-    application.listen(8888)
+    application.listen(config.get('websocket-port', 8888))
     #debug_console = DebugConsole(application)
     reactor.run()
 
 if __name__ == "__main__":
-    service = "tcp://127.0.0.1:9091"
+    service = config.get("obelisk-url", "tcp://127.0.0.1:9091")
     main(service)
 

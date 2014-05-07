@@ -1,6 +1,7 @@
 import obelisk
 import zmq
 import txrad
+import config
 
 def hash_transaction(raw_tx):
     return obelisk.Hash(raw_tx)[::-1]
@@ -10,7 +11,7 @@ class Broadcaster:
     def __init__(self):
         self._ctx = zmq.Context()
         self._socket = self._ctx.socket(zmq.PUSH)
-        self._socket.connect("tcp://localhost:9109")
+        self._socket.connect(config.get("broadcaster-url", "tcp://localhost:9109"))
 
     def broadcast(self, raw_tx):
         self._socket.send(raw_tx)

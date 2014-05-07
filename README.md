@@ -20,6 +20,8 @@ python daemon/gateway.py --logging=debug --log_to_stderr=true
 
 you can also use other tornado logging options, check it's documentation.
 
+Check config.json file for tuning it.
+
 Client cheatlist:
 -----------
 

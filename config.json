@@ -1,0 +1,6 @@
+{
+ "websocket-port": 8888,
+ "p2p-port": 8889,
+ "broadcaster-url": "tcp://localhost:9109",
+ "obelisk-url": "tcp://127.0.0.1:19091"
+}
