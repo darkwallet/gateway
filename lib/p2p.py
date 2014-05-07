@@ -15,17 +15,8 @@ import traceback
 DEFAULT_PORT=8889
 
 # Get some command line pars
-SEED_URI = False
-if len(sys.argv) > 1:
-    MY_IP = sys.argv[1]
-else:
-    MY_IP = "127.0.0.1"
-if len(sys.argv) > 2:
-    SEED_URI = sys.argv[2] # like tcp://127.0.0.1:8889
-else:
-    print "warning no seed!! you should call like [market myip seeduri]"
+MY_IP = "127.0.0.1"
 
-print "init as " + MY_IP
 
 # Connection to one peer
 class PeerConnection(object):
@@ -74,12 +65,13 @@ class PeerConnection(object):
 
 # Transport layer manages a list of peers
 class TransportLayer(object):
-    def __init__(self, port=DEFAULT_PORT):
+    def __init__(self, port=DEFAULT_PORT, my_ip=MY_IP):
+        print "init as " + my_ip
         self._peers = {}
         self._callbacks = defaultdict(list)
-        self._id = MY_IP[-1] # hack for logging
+        self._id = my_ip[-1] # hack for logging
         self._port = port
-        self._uri = 'tcp://%s:%s' % (MY_IP, self._port)
+        self._uri = 'tcp://%s:%s' % (my_ip, self._port)
 
     def add_callback(self, section, callback):
         self._callbacks[section].append(callback)
@@ -94,16 +86,16 @@ class TransportLayer(object):
     def get_profile(self):
         return {'type': 'hello', 'uri': self._uri}
 
-    def join_network(self):
+    def join_network(self, seeds=[]):
         self.listen()
-        if SEED_URI:
-            self.init_peer({'uri': SEED_URI})
+        for seed in seeds:
+            self.init_peer({'uri': seed})
 
     def listen(self):
         Thread(target=self._listen).start()
 
     def _listen(self):
-        self.log("init server %s %s" % (MY_IP, self._port))
+        self.log("init server %s" % self._uri)
         self._ctx = zmq.Context()
         self._socket = self._ctx.socket(zmq.REP)
         self._socket.bind(self._uri)
