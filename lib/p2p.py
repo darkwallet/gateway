@@ -30,6 +30,8 @@ print "init as " + MY_IP
 # Connection to one peer
 class PeerConnection(object):
     def __init__(self, transport, address):
+        # timeout in seconds
+        self._timeout = 10
         self._address = address
         self._transport = transport
 
@@ -60,7 +62,7 @@ class PeerConnection(object):
             self.cleanup_socket()
 
         else:
-            self._log.info("Peer " + self._address + " timed out.")
+            self._transport.log.info("Peer " + self._address + " timed out.")
             self.cleanup_socket()
             self._transport.remove_peer(self._address)
 
