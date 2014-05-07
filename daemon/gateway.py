@@ -46,7 +46,7 @@ class GatewayApplication(tornado.web.Application):
         self.obelisk_handler = obelisk_handler.ObeliskHandler(client)
         self.brc_handler = broadcast.BroadcastHandler()
         self.p2p = CryptoTransportLayer(config.get('p2p-port', 8889), config.get('external-ip', '127.0.0.1'))
-        self.p2p.join_network(config.get('peers', []))
+        self.p2p.join_network(config.get('seeds', []))
         self.json_chan_handler = jsonchan.JsonChanHandler(self.p2p)
         self.ticker_handler = ticker.TickerHandler()
 
