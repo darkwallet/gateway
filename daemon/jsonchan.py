@@ -149,7 +149,7 @@ class ObJsonChanPost(JsonChanHandlerBase):
     def process(self, params):
         self._json_chan.post(params[0], params[1], params[2])
         self.process_response(None, {'result': 'ok', 'method': 'post'})
-        self._handler.send_p2p(params);
+        self._gateway.send_p2p(params);
 
 class ObJsonChanList(JsonChanHandlerBase):
     def process(self, params):
