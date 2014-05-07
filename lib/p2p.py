@@ -62,7 +62,7 @@ class PeerConnection(object):
             self.cleanup_socket()
 
         else:
-            self._transport.log.info("Peer " + self._address + " timed out.")
+            self._transport.log("Peer " + self._address + " timed out.")
             self.cleanup_socket()
             self._transport.remove_peer(self._address)
 
@@ -126,10 +126,10 @@ class TransportLayer(object):
             self._peers[uri] = PeerConnection(uri, self)
 
     def remove_peer(self, uri):
-        self._log.info("Removing peer " + uri )
+        self.log.info("Removing peer " + uri )
         del self._peers[uri]
 
-        self._log.debug("Peers " + str(self._peers) )
+        self.log.debug("Peers " + str(self._peers) )
 
     def log(self, msg, pointer='-'):
         print " %s [%s] %s" % (pointer, self._id, msg)
