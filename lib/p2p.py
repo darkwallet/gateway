@@ -118,7 +118,7 @@ class TransportLayer(object):
             self._peers[uri] = PeerConnection(uri, self)
 
     def remove_peer(self, uri):
-        self.log.info("Removing peer " + uri )
+        self.log("Removing peer " + uri )
         del self._peers[uri]
 
         self.log.debug("Peers " + str(self._peers) )
