@@ -149,6 +149,7 @@ class ObJsonChanPost(JsonChanHandlerBase):
     def process(self, params):
         self._json_chan.post(params[0], params[1], params[2])
         self.process_response(None, {'result': 'ok', 'method': 'post'})
+        self._handler.send_p2p(params);
 
 class ObJsonChanList(JsonChanHandlerBase):
     def process(self, params):
@@ -220,8 +221,20 @@ class JsonChanHandler:
         "disconnect_client":        ObDisconnectClient
     }
 
-    def __init__(self):
+    def __init__(self, p2p):
         self._json_chan = JsonChan()
+        self._p2p = p2p
+        p2p.add_callback('jsonchan', self.on_p2p_message)
+
+    def send_p2p(self, params):
+        msg = {'type': 'jsonchan', 'action': 'post', 'data': params}
+        self._p2p.send(msg, secure=True)
+
+    def on_p2p_message(self, data):
+        if data.get('action') == 'post' and data.get('data'):
+            params = data.get('data')
+            if len(params) == 3:
+                self._json_chan.post(params[0], params[1], params[2])
 
     def handle_request(self, socket_handler, request):
         command = request["command"]

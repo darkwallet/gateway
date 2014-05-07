@@ -11,13 +11,13 @@ import threading
 import code
 from collections import defaultdict
 
-#from crypto2crypto import CryptoTransportLayer
 
 # Install Tornado reactor loop into Twister
 # http://www.tornadoweb.org/en/stable/twisted.html
 from tornado.platform.twisted import TwistedIOLoop
 from twisted.internet import reactor
 TwistedIOLoop().install()
+from crypto2crypto import CryptoTransportLayer
 
 from tornado.options import define, options, parse_command_line
 
@@ -44,7 +44,9 @@ class GatewayApplication(tornado.web.Application):
         client = obelisk.ObeliskOfLightClient(service)
         self.obelisk_handler = obelisk_handler.ObeliskHandler(client)
         self.brc_handler = broadcast.BroadcastHandler()
-        self.json_chan_handler = jsonchan.JsonChanHandler()
+        self.p2p = CryptoTransportLayer(8890)
+        self.p2p.join_network()
+        self.json_chan_handler = jsonchan.JsonChanHandler(self.p2p)
         self.ticker_handler = ticker.TickerHandler()
 
         handlers = [
@@ -161,8 +163,8 @@ class DebugConsole(threading.Thread):
 def main(service):
     application = GatewayApplication(service)
     tornado.autoreload.start(ioloop)
-    application.listen(8888)
-    debug_console = DebugConsole(application)
+    application.listen(9888)
+    #debug_console = DebugConsole(application)
     reactor.run()
 
 if __name__ == "__main__":
