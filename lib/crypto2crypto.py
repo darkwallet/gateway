@@ -97,7 +97,7 @@ class CryptoTransportLayer(TransportLayer):
             return
         if not uri in self._peers:
             self.create_peer(uri, pub)
-        elif pub and not self._peers[uri]._pub:
+        elif pub: # and not self._peers[uri]._pub:
             self.log("setting pub for seed node")
             self._peers[uri]._pub = pub.decode('hex')
 
