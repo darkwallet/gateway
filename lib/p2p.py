@@ -29,8 +29,9 @@ print "init as " + MY_IP
 
 # Connection to one peer
 class PeerConnection(object):
-    def __init__(self, address):
+    def __init__(self, transport, address):
         self._address = address
+        self._transport = transport
 
     def create_socket(self):
         self._ctx = zmq.Context()
@@ -50,10 +51,18 @@ class PeerConnection(object):
         self.create_socket()
 
         self._socket.send(serialized)
-        msg = self._socket.recv()
-        self.on_message(msg)
 
-        self.cleanup_socket()
+        poller = zmq.Poller()
+        poller.register(self._socket, zmq.POLLIN)
+        if poller.poll(self._timeout * 1000):
+            msg = self._socket.recv()
+            self.on_message(msg)
+            self.cleanup_socket()
+
+        else:
+            self._log.info("Peer " + self._address + " timed out.")
+            self.cleanup_socket()
+            self._transport.remove_peer(self._address)
 
     def on_message(self, msg):
         print "message received!", msg
@@ -112,7 +121,13 @@ class TransportLayer(object):
         uri = msg['uri']
         self.log("init peer %s" %  msg)
         if not uri in self._peers:
-            self._peers[uri] = PeerConnection(uri)
+            self._peers[uri] = PeerConnection(uri, self)
+
+    def remove_peer(self, uri):
+        self._log.info("Removing peer " + uri )
+        del self._peers[uri]
+
+        self._log.debug("Peers " + str(self._peers) )
 
     def log(self, msg, pointer='-'):
         print " %s [%s] %s" % (pointer, self._id, msg)

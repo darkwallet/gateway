@@ -27,10 +27,9 @@ def load_crypto_details():
 
 class CryptoPeerConnection(PeerConnection):
     def __init__(self, address, transport, pub):
-        self._transport = transport
         self._priv = transport._myself
         self._pub = pub
-        PeerConnection.__init__(self, address)
+        PeerConnection.__init__(self, transport, address)
 
     def encrypt(self, data):
         return self._priv.encrypt(data, self._pub)
