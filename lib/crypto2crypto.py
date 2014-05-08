@@ -100,6 +100,7 @@ class CryptoTransportLayer(TransportLayer):
         elif pub: # and not self._peers[uri]._pub:
             self.log("setting pub for seed node")
             self._peers[uri]._pub = pub.decode('hex')
+            self._peers[uri].send(hello(self.get_profile()))
 
     def on_raw_message(self, serialized):
         try:
