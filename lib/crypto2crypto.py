@@ -98,9 +98,13 @@ class CryptoTransportLayer(TransportLayer):
         if not uri in self._peers:
             self.create_peer(uri, pub)
         elif pub: # and not self._peers[uri]._pub:
-            self.log("setting pub for seed node")
-            self._peers[uri]._pub = pub.decode('hex')
-            self._peers[uri].send(hello(self.get_profile()))
+            if self._peers[uri]._pub:
+                self.log("updating peer pubkey " + uri)
+            else:
+                self.log("setting pub for seed node " + uri)
+            if not self._peers[uri]._pub or not pub == self._peers[uri]._pub.encode('hex'):
+                self._peers[uri]._pub = pub.decode('hex')
+                self._peers[uri].send(hello(self.get_profile()))
 
     def on_raw_message(self, serialized):
         try:
