@@ -2,8 +2,9 @@ Dependencies (Debian):
 
   python-obelisk from https://github.com/darkwallet/python-obelisk
 
-  # pip install tornado
+  # pip install tornado pyellyptic
 
   $ cd gateway/txrad/
   $ make
 
+  $ export PYTHONPATH="/path-to-gateway-repo/lib:$PYTHONPATH"
