@@ -4,7 +4,7 @@ Dependencies (Debian):
 
   # pip install tornado pyellyptic
 
-  $ cd gateway/txrad/
+  $ cd daemon/txrad/
   $ make
 
   $ export PYTHONPATH="/path-to-gateway-repo/lib:$PYTHONPATH"
