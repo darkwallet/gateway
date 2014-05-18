@@ -2,7 +2,7 @@ Dependencies (Debian):
 
   python-obelisk from https://github.com/darkwallet/python-obelisk
 
-  # pip install tornado pyellyptic
+  # pip install tornado pyelliptic
 
   $ cd daemon/txrad/
   $ make
