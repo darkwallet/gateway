@@ -92,7 +92,9 @@ class TransportLayer(object):
             self.init_peer({'uri': seed})
 
     def listen(self):
-        Thread(target=self._listen).start()
+        thread = Thread(target=self._listen)
+        thread.daemon = True
+        thread.start()
 
     def _listen(self):
         self.log("init server %s" % self._uri)
