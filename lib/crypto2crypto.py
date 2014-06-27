@@ -96,7 +96,7 @@ class CryptoTransportLayer(TransportLayer):
         if uri == self._uri:
             return
         if not self.valid_peer_uri(uri):
-            self._log.error("Invalid Peer: %s " % uri)
+            self.log("Error. Invalid Peer: %s " % uri)
             return
         if not uri in self._peers:
             self.create_peer(uri, pub)
