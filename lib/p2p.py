@@ -180,7 +180,8 @@ class TransportLayer(object):
             return False
 
         if not network_util.is_valid_protocol(other_protocol) \
-                or not network_util.is_valid_port(other_port):
+                or not network_util.is_valid_port(other_port) \
+                or not network_util.is_valid_ip_address(other_addr):
             return False
 
         if network_util.is_private_ip_address(self_addr):
