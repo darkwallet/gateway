@@ -16,6 +16,8 @@ def is_valid_protocol(protocol):
 
 
 def is_valid_ip_address(addr):
+    if addr == '0.0.0.0':
+        return False
     try:
         socket.inet_aton(addr)
         return True
