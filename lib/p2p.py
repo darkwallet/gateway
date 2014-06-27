@@ -10,6 +10,7 @@ from multiprocessing import Process
 from threading import Thread
 #ioloop.install()
 import traceback
+import network_util
 
 # Default port
 DEFAULT_PORT=8889
@@ -43,7 +44,7 @@ class PeerConnection(object):
     def _send_raw(self, serialized):
         self.create_socket()
 
-        self._socket.send(serialized)
+        self._socket.send(serialized, zmq.NOBLOCK)
 
         poller = zmq.Poller()
         poller.register(self._socket, zmq.POLLIN)
@@ -123,7 +124,7 @@ class TransportLayer(object):
         self.log("Removing peer " + uri )
         del self._peers[uri]
 
-        self.log.debug("Peers " + str(self._peers) )
+        self.log("Peers " + str(self._peers) )
 
     def log(self, msg, pointer='-'):
         print " %s [%s] %s" % (pointer, self._id, msg)
@@ -169,3 +170,24 @@ class TransportLayer(object):
         else:
             self.on_message(msg)
 
+    def valid_peer_uri(self, uri):
+        try:
+            [self_protocol, self_addr, self_port] = \
+                network_util.uri_parts(self._uri)
+            [other_protocol, other_addr, other_port] = \
+                network_util.uri_parts(uri)
+        except RuntimeError:
+            return False
+
+        if not network_util.is_valid_protocol(other_protocol) \
+                or not network_util.is_valid_port(other_port):
+            return False
+
+        if network_util.is_private_ip_address(self_addr):
+            if not network_util.is_private_ip_address(other_addr):
+                self.log('Trying to connect to external network with a private ip address.')
+        else:
+            if network_util.is_private_ip_address(other_addr):
+                return False
+
+        return True
