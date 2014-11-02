@@ -78,6 +78,14 @@ class ObFetchTransaction(ObeliskCallbackBase):
         tx = result[0].encode("hex")
         return (tx,)
 
+class ObUnsubscribe(ObeliskCallbackBase):
+    def translate_arguments(self, params):
+        check_params_length(params, 1)
+        address = params[0]
+        if address in self._handler._subscriptions['obelisk']:
+            del self._handler._subscriptions['obelisk'][address]
+        return (address,)
+
 class ObSubscribe(ObeliskCallbackBase):
 
     def __call__(self, err, data):
@@ -260,6 +268,7 @@ class ObeliskHandler:
         # Address stuff
         "renew_address":                    ObSubscribe,
         "subscribe_address":                ObSubscribe,
+        "unsubscribe_address":              ObUnsubscribe,
         "disconnect_client":                ObDisconnectClient
     }
 
