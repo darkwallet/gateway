@@ -20,6 +20,8 @@ class Ticker(threading.Thread):
 
     def pull_prices(self):
         ticker_all = self.query_ticker()
+        if not ticker_all:
+            return
         with self.lock:
             for currency, ticker_values in ticker_all.iteritems():
                 self.ticker[currency] = ticker_values
