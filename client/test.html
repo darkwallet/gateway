@@ -14,7 +14,7 @@ function init() {
         write_to_screen("CONNECTED");
         test(client);
     };
-    var client = new GatewayClient("ws://obelisk.unsystem.net:8888/", handle_connect);
+    var client = new GatewayClient("ws://dev.unsystem.net:8888/", handle_connect);
 
     client.on_error = function(evt) {
         write_to_screen('<span style="color: red;">ERROR:</span> ' + evt.data);
@@ -73,7 +73,7 @@ function test(client) {
     write_to_screen("Broadcasting tx " + raw_tx + "...");
     client.broadcast_transaction(raw_tx, tx_notify);
 
-    prefix = [2, 1763505291];
+    prefix = "101010101";
     write_to_screen("Fetch stealth " + prefix);
     client.fetch_stealth(prefix, stealth_fetched, 0);
 
