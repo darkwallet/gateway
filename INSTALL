@@ -31,3 +31,9 @@ Install some final dependencies as root:
 
   $ export PYTHONPATH="/path-to-gateway-repo/lib:$PYTHONPATH"
 
+Setup the config.
+
+  $ cp config.json.example config.json
+
+  $ python daemon/gateway.py
+

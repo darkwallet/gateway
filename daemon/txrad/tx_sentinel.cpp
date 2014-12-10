@@ -58,18 +58,18 @@ public:
 
 private:
     void connection_started(
-        const std::error_code& ec, bc::channel_ptr node);
+        const std::error_code& ec, bc::network::channel_ptr node);
     void inventory_received(const std::error_code& ec,
-        const bc::inventory_type& packet, bc::channel_ptr node);
+        const bc::inventory_type& packet, bc::network::channel_ptr node);
 
 #ifndef SUPRESS_OUTPUT
     std::ofstream outfile_, errfile_;
 #endif
     bc::threadpool pool_;
-    bc::hosts hosts_;
-    bc::handshake handshake_;
-    bc::network network_;
-    bc::protocol p2p_;
+    bc::network::hosts hosts_;
+    bc::network::handshake handshake_;
+    bc::network::network network_;
+    bc::network::protocol p2p_;
     python::object handle_newtx_;
 };
 
@@ -149,7 +149,7 @@ void tx_sentinel::stop()
 }
 
 void tx_sentinel::connection_started(
-    const std::error_code& ec, bc::channel_ptr node)
+    const std::error_code& ec, bc::network::channel_ptr node)
 {
     if (ec)
     {
@@ -175,7 +175,7 @@ void notify_transaction(
 }
 
 void tx_sentinel::inventory_received(const std::error_code& ec,
-    const bc::inventory_type& packet, bc::channel_ptr node)
+    const bc::inventory_type& packet, bc::network::channel_ptr node)
 {
     if (ec)
     {
