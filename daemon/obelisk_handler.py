@@ -82,9 +82,11 @@ class ObUnsubscribe(ObeliskCallbackBase):
     def translate_arguments(self, params):
         check_params_length(params, 1)
         address = params[0]
+        cb = None
         if address in self._handler._subscriptions['obelisk']:
+            cb = self._handler._subscriptions['obelisk'][address]
             del self._handler._subscriptions['obelisk'][address]
-        return (address,)
+        return (address, cb)
 
 class ObSubscribe(ObeliskCallbackBase):
 
