@@ -1,7 +1,10 @@
+import time
 import obelisk
 import zmq
 import txrad
 import config
+import struct
+from twisted.internet import reactor
 
 def hash_transaction(raw_tx):
     return obelisk.Hash(raw_tx)[::-1]
@@ -9,9 +12,54 @@ def hash_transaction(raw_tx):
 class Broadcaster:
 
     def __init__(self):
+        self.last_nodes = 0
         self._ctx = zmq.Context()
         self._socket = self._ctx.socket(zmq.PUSH)
         self._socket.connect(config.get("broadcaster-url", "tcp://localhost:9109"))
+        reactor.callInThread(self.status_loop)
+        reactor.callInThread(self.feedback_loop)
+
+    def feedback_loop(self, *args):
+        # feedback socket
+        ctx = zmq.Context()
+        socket = ctx.socket(zmq.SUB)
+        socket.setsockopt(zmq.SUBSCRIBE, "")
+        socket.connect(config.get("broadcaster-error-url", "tcp://localhost:9110"))
+        print "brc error connected"
+        while True:
+            msg = [socket.recv()]
+            while socket.getsockopt(zmq.RCVMORE):
+                msg.append(socket.recv())
+            if len(msg) == 3:
+                self.on_feedback_msg(*msg)
+            else:
+                print "bad feedback message", msg
+
+    def on_feedback_msg(self, hash, num, error):
+        try:
+            num = struct.unpack("<Q", num)[0]
+            print "error", hash.encode('hex'), num, error
+        except:
+            print "error decoding brc feedback"
+
+    def status_loop(self, *args):
+        # feedback socket
+        print "connect brc feedback"
+        ctx = zmq.Context()
+        socket = ctx.socket(zmq.SUB)
+        socket.setsockopt(zmq.SUBSCRIBE, "")
+        socket.connect(config.get("broadcaster-feedback-url", "tcp://localhost:9112"))
+        print "brc connected"
+        while True:
+            msg = socket.recv()
+            nodes = 0
+            try:
+                nodes = struct.unpack("<Q", msg)[0]
+            except:
+                print "bad nodes data", msg
+            if not nodes == self.last_nodes:
+                print "nodes", nodes
+                self.last_nodes = nodes
 
     def broadcast(self, raw_tx):
         self._socket.send(raw_tx)
