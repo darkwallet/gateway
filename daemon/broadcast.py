@@ -82,9 +82,10 @@ class NotifyCallback:
         self._request_id = request_id
 
     def __call__(self, count, type='radar', error=None):
+        error = error.strip() or None
         response = {
             "id": self._request_id,
-            "error": error or None,
+            "error": error,
             "result": [count, type]
         }
         self._handler.queue_response(response)
