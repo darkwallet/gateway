@@ -4,6 +4,7 @@ import zmq
 import txrad
 import config
 import struct
+from collections import defaultdict
 from twisted.internet import reactor
 
 def hash_transaction(raw_tx):
@@ -13,6 +14,7 @@ class Broadcaster:
 
     def __init__(self):
         self.last_nodes = 0
+        self.notifications = defaultdict(list)
         self._ctx = zmq.Context()
         self._socket = self._ctx.socket(zmq.PUSH)
         self._socket.connect(config.get("broadcaster-url", "tcp://localhost:9109"))
@@ -38,9 +40,16 @@ class Broadcaster:
     def on_feedback_msg(self, hash, num, error):
         try:
             num = struct.unpack("<Q", num)[0]
-            print "error", hash.encode('hex'), num, error
+            #print "error", hash.encode('hex'), num, error
         except:
             print "error decoding brc feedback"
+        try:
+            # trigger notifications
+            for notify in self.notifications[hash]:
+                notify(num, 'brc', error)
+            del self.notifications[hash]
+        except:
+            print "error sending client notifications"
 
     def status_loop(self, *args):
         # feedback socket
@@ -61,7 +70,9 @@ class Broadcaster:
                 print "nodes", nodes
                 self.last_nodes = nodes
 
-    def broadcast(self, raw_tx):
+    def broadcast(self, raw_tx, notify):
+        tx_hash = hash_transaction(raw_tx)
+        self.notifications[tx_hash].append(notify)
         self._socket.send(raw_tx)
 
 class NotifyCallback:
@@ -70,11 +81,11 @@ class NotifyCallback:
         self._handler = socket_handler
         self._request_id = request_id
 
-    def __call__(self, count):
+    def __call__(self, count, type='radar', error=None):
         response = {
             "id": self._request_id,
-            "error": None,
-            "result": [count]
+            "error": error,
+            "result": [count, type]
         }
         self._handler.queue_response(response)
 
@@ -92,10 +103,11 @@ class BroadcastHandler:
             return True
         raw_tx = request["params"][0].decode("hex")
         request_id = request["id"]
-        # Broadcast...
-        self._brc.broadcast(raw_tx)
-        # And monitor.
+        # Prepare notifier object
         notify = NotifyCallback(socket_handler, request_id)
+        # Broadcast...
+        self._brc.broadcast(raw_tx, notify)
+        # And monitor.
         tx_hash = hash_transaction(raw_tx)
         self._txrad.monitor(tx_hash, notify)
         notify(0.0)
