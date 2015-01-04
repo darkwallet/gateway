@@ -40,6 +40,7 @@ class Broadcaster:
     def on_feedback_msg(self, hash, num, error):
         try:
             num = struct.unpack("<Q", num)[0]
+            error = struct.unpack("<Q", error)[0]
             #print "error", hash.encode('hex'), num, error
         except:
             print "error decoding brc feedback"
@@ -82,10 +83,9 @@ class NotifyCallback:
         self._request_id = request_id
 
     def __call__(self, count, type='radar', error=None):
-        error = error.strip() or None
         response = {
             "id": self._request_id,
-            "error": error,
+            "error": error or None,
             "result": [count, type]
         }
         self._handler.queue_response(response)
