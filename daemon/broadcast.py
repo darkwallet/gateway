@@ -47,7 +47,7 @@ class Broadcaster:
         try:
             # trigger notifications
             for notify in self.notifications[hash]:
-                notify(num, 'brc', error)
+                notify(num, 'brc', num == 0)
             del self.notifications[hash]
         except:
             print "error sending client notifications"
