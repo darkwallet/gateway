@@ -12,7 +12,8 @@ class TxRadar:
         self._monitor_tx = {}
         self._monitor_lock = threading.Lock()
         self._sentinel = tx_sentinel.TxSentinel()
-        self._sentinel.start(display_output, number_threads,
+        self._sentinel.start(
+            TxRadar.display_output, TxRadar.number_threads,
             TxRadar.radar_hosts, self._new_tx)
 
     def _increment_monitored_tx(self, tx_hash):
