@@ -126,14 +126,6 @@ void tx_sentinel::start(bool display_output,
 {
     if (display_output)
     {
-        bc::log_debug().set_output_function(log_nothing);
-        bc::log_info().set_output_function(log_nothing);
-        bc::log_warning().set_output_function(log_nothing);
-        bc::log_error().set_output_function(log_nothing);
-        bc::log_fatal().set_output_function(log_nothing);
-    }
-    else
-    {
         outfile_.open("debug.txrad.log");
         errfile_.open("error.txrad.log");
         bc::log_debug().set_output_function(std::bind(
@@ -146,6 +138,14 @@ void tx_sentinel::start(bool display_output,
             log_to_file, std::ref(errfile_), ph::_1, ph::_2, ph::_3));
         bc::log_fatal().set_output_function(std::bind(
             log_to_file, std::ref(errfile_), ph::_1, ph::_2, ph::_3));
+    }
+    else
+    {
+        bc::log_debug().set_output_function(log_nothing);
+        bc::log_info().set_output_function(log_nothing);
+        bc::log_warning().set_output_function(log_nothing);
+        bc::log_error().set_output_function(log_nothing);
+        bc::log_fatal().set_output_function(log_nothing);
     }
 
     pool_.spawn(threads);
