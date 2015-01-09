@@ -136,12 +136,15 @@ void tx_sentinel::start(bool display_output,
     auto p2p_started = [this, handle_start](
         const std::error_code& ec)
     {
+        if (!ec)
+        {
+            bc::log_warning() << "Restarting connection...";
+            p2p_.start(p2p_started);
+            return;
+        }
         pyfunction pyh(handle_start);
-        if (ec)
-            pyh(ec.message());
-        else
-            // Success. Pass in None.
-            pyh(python::object());
+        // Success. Call finish callback to signal success.
+        pyh();
     };
     p2p_.start(p2p_started);
 }

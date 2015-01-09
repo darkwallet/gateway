@@ -1,15 +1,15 @@
 from tx_sentinel import *
 
-def started(ec):
-    print "started:", ec
-
-def newtx(tx_hash):
-    print "tx:", tx_hash.encode("hex")
-
 number_threads = 1
 number_hosts = 10
 # Whether to display output.
 display_output = True
+
+def started():
+    print "Started txradar"
+
+def newtx(tx_hash):
+    print "tx:", tx_hash.encode("hex")
 
 sentinel = TxSentinel()
 # b.start(number_threads, number_hosts, ...)
