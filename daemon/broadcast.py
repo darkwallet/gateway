@@ -13,6 +13,7 @@ def hash_transaction(raw_tx):
 class Broadcaster:
 
     def __init__(self):
+        self.last_status = time.time()
         self.last_nodes = 0
         self.notifications = defaultdict(list)
         self._ctx = zmq.Context()
@@ -20,6 +21,12 @@ class Broadcaster:
         self._socket.connect(config.get("broadcaster-url", "tcp://localhost:9109"))
         reactor.callInThread(self.status_loop)
         reactor.callInThread(self.feedback_loop)
+        reactor.callLater(1, self.watchdog)
+
+    def watchdog(self):
+        if self.last_status + 5 < time.time():
+            print "broadcaster issues!"
+        reactor.callLater(1, self.watchdog)
 
     def feedback_loop(self, *args):
         # feedback socket
@@ -65,6 +72,7 @@ class Broadcaster:
             nodes = 0
             try:
                 nodes = struct.unpack("<Q", msg)[0]
+                self.last_status = time.time()
             except:
                 print "bad nodes data", msg
             if not nodes == self.last_nodes:
