@@ -43,3 +43,7 @@ class TxRadar:
         with self._monitor_lock:
             self._monitor_tx[tx_hash] = [0, notify_callback]
 
+    @property
+    def total_connections(self):
+        return self._sentinel.total_connections
+
