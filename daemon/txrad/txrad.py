@@ -2,6 +2,9 @@ import sys
 import threading
 import tx_sentinel
 
+def started():
+    print "TxRadar started."
+
 class TxRadar:
 
     radar_hosts = 20
@@ -14,7 +17,7 @@ class TxRadar:
         self._sentinel = tx_sentinel.TxSentinel()
         self._sentinel.start(
             TxRadar.display_output, TxRadar.number_threads,
-            TxRadar.radar_hosts, self._new_tx)
+            TxRadar.radar_hosts, self._new_tx, started)
 
     def _increment_monitored_tx(self, tx_hash):
         with self._monitor_lock:
