@@ -15,6 +15,8 @@ sentinel = TxSentinel()
 sentinel.start(1, 10, newtx, started)
 # Wait for user input. sentinel runs in the background.
 raw_input()
+print "Total connections:", sentinel.total_connections()
+raw_input()
 # You must stop otherwise exception is thrown.
 sentinel.stop()
 

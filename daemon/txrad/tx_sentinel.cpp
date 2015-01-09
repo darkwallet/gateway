@@ -56,6 +56,8 @@ public:
         python::object handle_newtx, python::object handle_start);
     void stop();
 
+    size_t total_connections() const;
+
 private:
     void connection_started(
         const std::error_code& ec, bc::network::channel_ptr node);
@@ -199,6 +201,11 @@ void tx_sentinel::inventory_received(const std::error_code& ec,
             ph::_1, ph::_2, node));
 }
 
+size_t tx_sentinel::total_connections() const
+{
+    return p2p_.total_connections();
+}
+
 // Turn tx_sentinel into a copyable object.
 // We also need a fixed address if we're binding methods using 'this'
 class tx_sentinel_wrapper
@@ -215,6 +222,10 @@ public:
     {
         pimpl_->stop();
     }
+    size_t total_connections() const
+    {
+        return pimpl_->total_connections();
+    }
 
 private:
     tx_sentinel_ptr pimpl_ = std::make_shared<tx_sentinel>();
@@ -228,6 +239,8 @@ BOOST_PYTHON_MODULE(tx_sentinel)
     class_<tx_sentinel_wrapper>("TxSentinel")
         .def("start", &tx_sentinel_wrapper::start)
         .def("stop", &tx_sentinel_wrapper::stop)
+        .add_property("total_connections",
+            &tx_sentinel_wrapper::total_connections);
     ;
 }
 
