@@ -96,6 +96,30 @@ tx_sentinel::tx_sentinel()
 {
 }
 
+void p2p_started(bc::network::protocol& p2p, const std::error_code& ec,
+    python::object handle_start);
+
+// Start the p2p network. Is called repeatedly until connected.
+void start_p2p(bc::network::protocol& p2p, python::object handle_start)
+{
+    p2p.start(std::bind(p2p_started, std::ref(p2p), ph::_1, handle_start));
+}
+
+// If there's an error then attempt to reconnect until successful.
+void p2p_started(bc::network::protocol& p2p, const std::error_code& ec,
+    python::object handle_start)
+{
+    if (ec)
+    {
+        bc::log_warning() << "Restarting connection...";
+        start_p2p(p2p, handle_start);
+        return;
+    }
+    pyfunction pyh(handle_start);
+    // Success. Call finish callback to signal success.
+    pyh();
+}
+
 void tx_sentinel::start(bool display_output,
     size_t threads, size_t number_hosts,
     python::object handle_newtx, python::object handle_start)
@@ -133,20 +157,7 @@ void tx_sentinel::start(bool display_output,
     p2p_.subscribe_channel(
         std::bind(&tx_sentinel::connection_started, this, ph::_1, ph::_2));
     // Start connecting to p2p networks for broadcasting and monitor txs.
-    auto p2p_started = [this, handle_start](
-        const std::error_code& ec)
-    {
-        if (!ec)
-        {
-            bc::log_warning() << "Restarting connection...";
-            p2p_.start(p2p_started);
-            return;
-        }
-        pyfunction pyh(handle_start);
-        // Success. Call finish callback to signal success.
-        pyh();
-    };
-    p2p_.start(p2p_started);
+    start_p2p(p2p_, handle_start);
 }
 void tx_sentinel::stop()
 {
