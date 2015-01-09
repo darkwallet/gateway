@@ -1,7 +1,7 @@
 #include <boost/python.hpp>
 #include <bitcoin/bitcoin.hpp>
 
-#define SUPRESS_OUTPUT
+//#define SUPRESS_OUTPUT
 
 namespace python = boost::python;
 namespace ph = std::placeholders;
@@ -52,7 +52,8 @@ class tx_sentinel
 public:
     tx_sentinel();
 
-    void start(size_t threads, size_t number_hosts,
+    void start(bool display_output,
+        size_t threads, size_t number_hosts,
         python::object handle_newtx, python::object handle_start);
     void stop();
 
@@ -64,9 +65,8 @@ private:
     void inventory_received(const std::error_code& ec,
         const bc::inventory_type& packet, bc::network::channel_ptr node);
 
-#ifndef SUPRESS_OUTPUT
     std::ofstream outfile_, errfile_;
-#endif
+
     bc::threadpool pool_;
     bc::network::hosts hosts_;
     bc::network::handshake handshake_;
@@ -75,12 +75,10 @@ private:
     python::object handle_newtx_;
 };
 
-#ifdef SUPRESS_OUTPUT
 void log_nothing(
     bc::log_level level, const std::string& domain, const std::string& body)
 {
 }
-#else
 void log_to_file(std::ofstream& file,
     bc::log_level level, const std::string& domain, const std::string& body)
 {
@@ -91,7 +89,6 @@ void log_to_file(std::ofstream& file,
         file << " [" << domain << "]";
     file << ": " << body << std::endl;
 }
-#endif
 
 tx_sentinel::tx_sentinel()
   : hosts_(pool_), handshake_(pool_), network_(pool_),
@@ -99,29 +96,33 @@ tx_sentinel::tx_sentinel()
 {
 }
 
-void tx_sentinel::start(size_t threads, size_t number_hosts,
+void tx_sentinel::start(bool display_output,
+    size_t threads, size_t number_hosts,
     python::object handle_newtx, python::object handle_start)
 {
-#ifdef SUPRESS_OUTPUT
-    bc::log_debug().set_output_function(log_nothing);
-    bc::log_info().set_output_function(log_nothing);
-    bc::log_warning().set_output_function(log_nothing);
-    bc::log_error().set_output_function(log_nothing);
-    bc::log_fatal().set_output_function(log_nothing);
-#else
-    outfile_.open("debug.txrad.log");
-    errfile_.open("error.txrad.log");
-    bc::log_debug().set_output_function(
-        std::bind(log_to_file, std::ref(outfile_), ph::_1, ph::_2, ph::_3));
-    bc::log_info().set_output_function(
-        std::bind(log_to_file, std::ref(outfile_), ph::_1, ph::_2, ph::_3));
-    bc::log_warning().set_output_function(
-        std::bind(log_to_file, std::ref(errfile_), ph::_1, ph::_2, ph::_3));
-    bc::log_error().set_output_function(
-        std::bind(log_to_file, std::ref(errfile_), ph::_1, ph::_2, ph::_3));
-    bc::log_fatal().set_output_function(
-        std::bind(log_to_file, std::ref(errfile_), ph::_1, ph::_2, ph::_3));
-#endif
+    if (display_output)
+    {
+        bc::log_debug().set_output_function(log_nothing);
+        bc::log_info().set_output_function(log_nothing);
+        bc::log_warning().set_output_function(log_nothing);
+        bc::log_error().set_output_function(log_nothing);
+        bc::log_fatal().set_output_function(log_nothing);
+    }
+    else
+    {
+        outfile_.open("debug.txrad.log");
+        errfile_.open("error.txrad.log");
+        bc::log_debug().set_output_function(std::bind(
+            log_to_file, std::ref(outfile_), ph::_1, ph::_2, ph::_3));
+        bc::log_info().set_output_function(std::bind(
+            log_to_file, std::ref(outfile_), ph::_1, ph::_2, ph::_3));
+        bc::log_warning().set_output_function(std::bind(
+            log_to_file, std::ref(errfile_), ph::_1, ph::_2, ph::_3));
+        bc::log_error().set_output_function(std::bind(
+            log_to_file, std::ref(errfile_), ph::_1, ph::_2, ph::_3));
+        bc::log_fatal().set_output_function(std::bind(
+            log_to_file, std::ref(errfile_), ph::_1, ph::_2, ph::_3));
+    }
 
     pool_.spawn(threads);
 
@@ -213,10 +214,12 @@ class tx_sentinel_wrapper
 public:
     typedef std::shared_ptr<tx_sentinel> tx_sentinel_ptr;
 
-    void start(size_t threads, size_t number_hosts,
+    void start(bool display_output,
+        size_t threads, size_t number_hosts,
         python::object handle_newtx, python::object handle_start)
     {
-        pimpl_->start(threads, number_hosts, handle_newtx, handle_start);
+        pimpl_->start(display_output, threads, number_hosts,
+            handle_newtx, handle_start);
     }
     void stop()
     {
