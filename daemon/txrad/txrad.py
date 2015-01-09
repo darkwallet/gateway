@@ -2,19 +2,18 @@ import sys
 import threading
 import tx_sentinel
 
-def started(ec):
-    if ec is not None:
-        print >> sys.stderr, "Error with TxRadar:", ec
-
 class TxRadar:
 
     radar_hosts = 20
+    display_output = False
+    number_threads = 1
 
     def __init__(self):
         self._monitor_tx = {}
         self._monitor_lock = threading.Lock()
         self._sentinel = tx_sentinel.TxSentinel()
-        self._sentinel.start(1, TxRadar.radar_hosts, self._new_tx, started)
+        self._sentinel.start(display_output, number_threads,
+            TxRadar.radar_hosts, self._new_tx)
 
     def _increment_monitored_tx(self, tx_hash):
         with self._monitor_lock:
