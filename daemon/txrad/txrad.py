@@ -1,6 +1,8 @@
+import struct
 import sys
 import threading
 import tx_sentinel
+import zmq
 
 def started():
     print "TxRadar started."
@@ -46,4 +48,21 @@ class TxRadar:
     @property
     def total_connections(self):
         return self._sentinel.total_connections
+
+if __name__ == "__main__":
+    txradar = TxRadar()
+    context = zmq.Context()
+    monitor_socket = context.socket(zmq.PULL)
+    monitor_socket.bind("tcp://*:7674")
+    pulse_socket = context.socket(zmq.PUB)
+    pulse_socket.bind("tcp://*:7675")
+    while True:
+        tx_hash = monitor_socket.recv()
+        def notify(ratio):
+            value = int(ratio * 100)
+            print "Sending", value, "for", tx_hash
+            data = struct.pack("<B", value)
+            pulse_socket.send(tx_hash)
+            pulse_socket.send(data)
+        txradar.monitor(tx_hash, notify)
 
