@@ -229,6 +229,9 @@ class ObFetchStealth(ObeliskCallbackBase):
     def call_method(self, method, params):
         assert len(params) == 2
         prefix, from_height = params
+        # Workaround for bug in earlier version of Darkwallet.
+        if prefix[0] == 0:
+            prefix = [0]
         method(prefix, self, from_height)
 
     def translate_arguments(self, params):
