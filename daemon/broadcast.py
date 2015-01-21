@@ -6,6 +6,7 @@ import config
 import struct
 from collections import defaultdict
 from twisted.internet import reactor
+from broadcast_connector import BroadcastConnector
 
 def hash_transaction(raw_tx):
     return obelisk.Hash(raw_tx)[::-1]
@@ -13,19 +14,22 @@ def hash_transaction(raw_tx):
 class Broadcaster:
 
     def __init__(self):
+        self.connector = BroadcastConnector()
         self.last_status = time.time()
         self.last_nodes = 0
+        self.issues = 0
         self.notifications = defaultdict(list)
         self._ctx = zmq.Context()
-        self._socket = self._ctx.socket(zmq.PUSH)
-        self._socket.connect(config.get("broadcaster-url", "tcp://localhost:9109"))
         reactor.callInThread(self.status_loop)
         reactor.callInThread(self.feedback_loop)
         reactor.callLater(1, self.watchdog)
 
     def watchdog(self):
         if self.last_status + 5 < time.time():
-            print "broadcaster issues!"
+            print "broadcaster issues!", self.issues
+            self.issues += 1
+        else:
+            self.issues = 0
         reactor.callLater(1, self.watchdog)
 
     def feedback_loop(self, *args):
@@ -33,16 +37,17 @@ class Broadcaster:
         ctx = zmq.Context()
         socket = ctx.socket(zmq.SUB)
         socket.setsockopt(zmq.SUBSCRIBE, "")
-        socket.connect(config.get("broadcaster-error-url", "tcp://localhost:9110"))
-        print "brc error connected"
+        socket.connect(config.get("broadcaster-feedback-url", "tcp://localhost:9110"))
+        print "brc feedback channel connected"
         while True:
             msg = [socket.recv()]
             while socket.getsockopt(zmq.RCVMORE):
                 msg.append(socket.recv())
+                print "feedback msg"
             if len(msg) == 3:
                 self.on_feedback_msg(*msg)
             else:
-                print "bad feedback message", msg
+                print "bad feedback message", len(msg)
 
     def on_feedback_msg(self, hash, num, error):
         try:
@@ -54,7 +59,7 @@ class Broadcaster:
         try:
             # trigger notifications
             for notify in self.notifications[hash]:
-                notify(num, 'brc', num == 0)
+                notify(num, 'brc-stats', num == 0)
             del self.notifications[hash]
         except:
             print "error sending client notifications"
@@ -66,7 +71,7 @@ class Broadcaster:
         socket = ctx.socket(zmq.SUB)
         socket.setsockopt(zmq.SUBSCRIBE, "")
         socket.connect(config.get("broadcaster-feedback-url", "tcp://localhost:9112"))
-        print "brc connected"
+        print "brc status channel connected"
         while True:
             msg = socket.recv()
             nodes = 0
@@ -82,7 +87,13 @@ class Broadcaster:
     def broadcast(self, raw_tx, notify):
         tx_hash = hash_transaction(raw_tx)
         self.notifications[tx_hash].append(notify)
-        self._socket.send(raw_tx)
+        def cb(txhash, error, result):
+            if error or not result:
+                notify(0, 'brc', 'Broadcaster could not propagate')
+            else:
+                notify(result, 'brc')
+        self.connector.broadcast(raw_tx, cb)
+
 
 class NotifyCallback:
 
