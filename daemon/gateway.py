@@ -8,6 +8,7 @@ import os.path
 import obelisk
 import json
 import threading
+import traceback
 import code
 from collections import defaultdict
 
@@ -21,6 +22,12 @@ TwistedIOLoop().install()
 from crypto2crypto import CryptoTransportLayer
 
 from tornado.options import define, options, parse_command_line
+
+try:
+    from tornado.websocket import WebSocketClosedError
+except:
+    class WebSocketClosedError(Exception):
+        pass
 
 parse_command_line()
 
@@ -136,10 +143,14 @@ class QuerySocketHandler(tornado.websocket.WebSocketHandler):
     def _send_response(self, response):
         try:
             self.write_message(json.dumps(response))
-        except tornado.websocket.WebSocketClosedError:
+        except WebSocketClosedError:
             self._connected = False
             logging.warning("Dropping response to closed socket: %s",
                response, exc_info=True)
+        except Exception as e:
+            print "cant send", str(e)
+            traceback.print_exc()
+            print "RESPONSE", response.keys()
 
     def queue_response(self, response):
         try:
