@@ -28,7 +28,7 @@ class BroadcastConnector(object):
             self.answer(None, retcode)
             self.next(1)
         except Exception as e:
-            print "except", e
+            #print "except", e
             self.task = reactor.callLater(0.08, self.receive)
 
     def next(self, timeout):
