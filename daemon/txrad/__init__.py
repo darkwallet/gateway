@@ -1,2 +1,0 @@
-from txrad import TxRadar
-

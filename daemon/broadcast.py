@@ -1,7 +1,7 @@
 import time
 import obelisk
 import zmq
-import txrad
+import radar
 import config
 import struct
 from collections import defaultdict
@@ -19,7 +19,6 @@ class Broadcaster:
         self.last_nodes = 0
         self.issues = 0
         self.notifications = defaultdict(list)
-        self._ctx = zmq.Context()
         reactor.callInThread(self.status_loop)
         reactor.callInThread(self.feedback_loop)
         reactor.callLater(1, self.watchdog)
@@ -81,7 +80,7 @@ class Broadcaster:
             except:
                 print "bad nodes data", msg
             if not nodes == self.last_nodes:
-                print "nodes", nodes
+                print "brc hosts", nodes
                 self.last_nodes = nodes
 
     def broadcast(self, raw_tx, notify):
@@ -113,7 +112,7 @@ class BroadcastHandler:
 
     def __init__(self):
         self._brc = Broadcaster()
-        self._txrad = txrad.TxRadar()
+        self._radar = radar.Radar()
 
     def handle_request(self, socket_handler, request):
         if request["command"] != "broadcast_transaction":
@@ -126,10 +125,13 @@ class BroadcastHandler:
         # Prepare notifier object
         notify = NotifyCallback(socket_handler, request_id)
         # Broadcast...
+        print "BROADCAT"
         self._brc.broadcast(raw_tx, notify)
         # And monitor.
+        print "BROADCAST"
         tx_hash = hash_transaction(raw_tx)
-        self._txrad.monitor(tx_hash, notify)
+        print "MONITOR", tx_hash
+        self._radar.monitor(tx_hash, notify)
         notify(0.0)
         return True
 
