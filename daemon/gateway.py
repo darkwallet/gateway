@@ -37,6 +37,7 @@ import obelisk_handler
 import jsonchan
 import broadcast
 import ticker
+import status
 
 define("port", default=8888, help="run on the given port", type=int)
 
@@ -76,6 +77,9 @@ class GatewayApplication(tornado.web.Application):
 
             # /height
             (r"/height(?:/)?", rest_handlers.HeightHandler),
+
+            # /height
+            (r"/status(?:/)?", status.StatusHandler, {"app": self}),
 
             # /
             (r"/", QuerySocketHandler)
