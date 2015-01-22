@@ -2,7 +2,6 @@ import time
 import obelisk
 import zmq
 import threading
-import txrad
 import config
 import struct
 from collections import defaultdict
