@@ -12,6 +12,7 @@ class Ticker(threading.Thread):
         self.lock = threading.Lock()
         self.ticker = {}
         self.start()
+        self.issues = 0
 
     def run(self):
         while True:
@@ -31,9 +32,12 @@ class Ticker(threading.Thread):
         try:
             f = urllib2.urlopen(url)
         except urllib2.HTTPError:
+            self.issues = 1
             return
+            self.issues = 1
         except urllib2.URLError:
             return
+        self.issues = 0
         return json.loads(f.read())
 
     def fetch(self, currency):
