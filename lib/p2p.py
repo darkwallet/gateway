@@ -66,13 +66,16 @@ class PeerConnection(object):
 
 # Transport layer manages a list of peers
 class TransportLayer(object):
-    def __init__(self, port=DEFAULT_PORT, my_ip=MY_IP):
+    def __init__(self, port=DEFAULT_PORT, my_ip=MY_IP, net_ip=None):
         print "init as " + my_ip
+        if not net_ip:
+          net_ip = my_ip
         self._peers = {}
         self._callbacks = defaultdict(list)
         self._id = my_ip[-1] # hack for logging
         self._port = port
         self._uri = 'tcp://%s:%s' % (my_ip, self._port)
+        self._neturi = 'tcp://%s:%s' % (net_ip, self._port)
 
     def add_callback(self, section, callback):
         self._callbacks[section].append(callback)
@@ -101,7 +104,7 @@ class TransportLayer(object):
         self.log("init server %s" % self._uri)
         self._ctx = zmq.Context()
         self._socket = self._ctx.socket(zmq.REP)
-        self._socket.bind(self._uri)
+        self._socket.bind(self._neturi)
         while True:
             try:
                 message = self._socket.recv()

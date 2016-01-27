@@ -43,8 +43,8 @@ class CryptoPeerConnection(PeerConnection):
 
 
 class CryptoTransportLayer(TransportLayer):
-    def __init__(self, port=None, my_ip=None):
-        TransportLayer.__init__(self, port, my_ip)
+    def __init__(self, port=None, my_ip=None, net_ip=None):
+        TransportLayer.__init__(self, port, my_ip, net_ip)
         self._myself = ec.ECC(curve='secp256k1')
 
         self.nick_mapping = {}

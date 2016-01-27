@@ -1,5 +1,6 @@
 {
  "external-ip": "85.25.198.211",
+ "internal-ip": "192.168.1.10",
  "seeds": ["tcp://85.25.198.213:8889"],
  "websocket-port": 8888,
  "p2p-port": 8889,
