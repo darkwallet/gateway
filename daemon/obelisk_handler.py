@@ -232,6 +232,9 @@ class ObFetchStealth(ObeliskCallbackBase):
         # Workaround for bug in earlier version of Darkwallet.
         if prefix[0] == 0:
             prefix = [0]
+        # Workaround for difference in api among libbitcoin versions
+        if prefix == [0,0]:
+            prefix = [0]
         method(prefix, self, from_height)
 
     def translate_arguments(self, params):
@@ -249,7 +252,7 @@ class ObFetchStealth(ObeliskCallbackBase):
         stealth_results = []
         for ephemkey, address, tx_hash in result[0]:
             stealth_results.append(
-                (ephemkey.encode("hex"), address, tx_hash.encode("hex")))
+                (ephemkey[::-1].encode("hex"), obelisk.bitcoin.hash_160_to_bc_address(address[::-1]), tx_hash.encode("hex")))
         return (stealth_results,)
 
 class ObDisconnectClient(ObeliskCallbackBase):
