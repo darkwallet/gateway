@@ -14,7 +14,7 @@ class LegacyClient:
         factory.connect()
     def fetch_stealth(self, *args):
         global conn
-        conn.fetch_stealth(args)
+        conn.fetch_stealth(*args)
 
 class ClientProtocol(WebSocketClientProtocol):
     _subscriptions = {}
