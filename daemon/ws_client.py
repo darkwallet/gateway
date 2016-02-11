@@ -7,11 +7,17 @@ import random
 import json
 
 conn = None
+client = None
 
 class LegacyClient:
     def __init__(self, url):
-        factory = ClientFactory(url, reactor=reactor)
-        factory.connect()
+        global client
+        client = self
+        self.factory = ClientFactory(url, reactor=reactor)
+        self.factory.connect()
+    def reconnect(self):
+        print "Reconnecting WebSocket"
+        self.factory.connect()
     def fetch_stealth(self, *args):
         global conn
         conn.fetch_stealth(*args)
@@ -37,6 +43,8 @@ class ClientProtocol(WebSocketClientProtocol):
         self.send_request(cb, "fetch_stealth", prefix, from_height)
     def onClose(self, wasClean, code, reason):
         print("WebSocket connection closed: {}".format(reason))
+        global client
+        client.reconnect()
     def onMessage(self, payload, isBinary):
         if not isBinary:
             try:
