@@ -252,7 +252,7 @@ class ObFetchStealth(ObeliskCallbackBase):
 
 class ObFetchStealth2(ObeliskCallbackBase):
     def call_client_method(self, method_name, params):
-        ObeliskCallbackBase.call_client_method("fetch_stealth", params)
+        ObeliskCallbackBase.call_client_method(self, "fetch_stealth", params)
 
     def call_method(self, method, params):
         assert len(params) == 2
