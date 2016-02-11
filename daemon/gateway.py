@@ -10,6 +10,13 @@ import json
 import threading
 import traceback
 import code
+ws_legacy_enabled = False
+try:
+    from ws_client import LegacyClient
+    ws_legacy_enabled = True
+except:
+    traceback.print_exc()
+    pass
 from collections import defaultdict
 
 import config
@@ -47,11 +54,17 @@ ioloop = tornado.ioloop.IOLoop.instance()
 class GatewayApplication(tornado.web.Application):
 
     def __init__(self, service):
-
         settings = dict(debug=True)
         settings.update(options.as_dict())
+        # legacy support
+        if config.get('legacy-url', False):
+            if ws_legacy_enabled:
+                self.ws_client = LegacyClient("wss://"+config.get('legacy-url'))
+            else:
+                print "legacy-url is configured but autobahn not installed"
+                self.ws_client = False
         client = obelisk.ObeliskOfLightClient(service)
-        self.obelisk_handler = obelisk_handler.ObeliskHandler(client)
+        self.obelisk_handler = obelisk_handler.ObeliskHandler(client, self.ws_client)
         self.brc_handler = broadcast.BroadcastHandler()
         self.p2p = CryptoTransportLayer(config.get('p2p-port', 8889), config.get('external-ip', '127.0.0.1'), config.get('internal-ip', None))
         self.p2p.join_network(config.get('seeds', []))

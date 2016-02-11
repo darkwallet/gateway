@@ -5,10 +5,11 @@ import obelisk
 
 class ObeliskCallbackBase(object):
 
-    def __init__(self, handler, request_id, client):
+    def __init__(self, handler, request_id, client, legacy_server):
         self._handler = handler
         self._request_id = request_id
         self._client = client
+        self._legacy_server = legacy_server
 
     def __call__(self, *args):
         assert len(args) > 1
@@ -226,6 +227,33 @@ class ObFetchBlockHeight(ObeliskCallbackBase):
 
 class ObFetchStealth(ObeliskCallbackBase):
 
+    def on_stealth_response(self, msg):
+        print "Websocket stealth response"
+        self._handler.queue_response(msg)
+
+    def call_client_method(self, method_name, params):
+        assert len(params) == 2
+        prefix, from_height = params
+        if prefix == 0 or prefix == [0]:
+            prefix = [0, 0]
+ 
+        self._legacy_server.fetch_stealth(prefix, from_height, self.on_stealth_response)
+
+    def translate_arguments(self, params):
+        if len(params) != 1 and len(params) != 2:
+            raise ValueError("Invalid parameter list length")
+        prefix = params[0]
+        if len(params) == 2:
+            from_height = params[1]
+        else:
+            from_height = 0
+        return (prefix, from_height)
+
+
+class ObFetchStealth2(ObeliskCallbackBase):
+    def call_client_method(self, method_name, params):
+        ObeliskCallbackBase.call_client_method("fetch_stealth", params)
+
     def call_method(self, method, params):
         assert len(params) == 2
         prefix, from_height = params
@@ -255,6 +283,8 @@ class ObFetchStealth(ObeliskCallbackBase):
                 (ephemkey[::-1].encode("hex"), obelisk.bitcoin.hash_160_to_bc_address(address[::-1]), tx_hash.encode("hex")))
         return (stealth_results,)
 
+
+
 class ObDisconnectClient(ObeliskCallbackBase):
     def call_client_method(self, method_name, params):
         for address in self._handler._subscriptions['obelisk']:
@@ -273,6 +303,7 @@ class ObeliskHandler:
         "fetch_transaction_index":          ObFetchTransactionIndex,
         "fetch_block_height":               ObFetchBlockHeight,
         "fetch_stealth":                    ObFetchStealth,
+        "fetch_stealth2":                   ObFetchStealth2,
         # Address stuff
         "renew_address":                    ObSubscribe,
         "subscribe_address":                ObSubscribe,
@@ -280,8 +311,9 @@ class ObeliskHandler:
         "disconnect_client":                ObDisconnectClient
     }
 
-    def __init__(self, client):
+    def __init__(self, client, legacy_server):
         self._client = client
+        self._legacy_server = legacy_server
 
     def handle_request(self, socket_handler, request):
         command = request["command"]
@@ -290,7 +322,7 @@ class ObeliskHandler:
 
         params = request["params"]
         # Create callback handler to write response to the socket.
-        handler = self.handlers[command](socket_handler, request["id"], self._client)
+        handler = self.handlers[command](socket_handler, request["id"], self._client, self._legacy_server)
         try:
             params = handler.translate_arguments(params)
         except Exception as exc:
